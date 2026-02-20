@@ -111,5 +111,45 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
     };
   }
 
+  if (provider === "telegram") {
+    // Telegram Bot API webhook payload:
+    // - message.text
+    // - message.from.id (user_id)
+    // - message.chat.id (chat_id)
+    const p: any = input.payload ?? {};
+    const msg: any = p.message ?? p.edited_message ?? p.channel_post ?? p.edited_channel_post;
+    if (!msg) throw new Error("Telegram payload missing message");
+
+    const text = asString(msg.text) ?? asString(msg.caption) ?? "";
+    const fromId = msg.from?.id;
+    const chatId = msg.chat?.id;
+
+    if (fromId === undefined || fromId === null) throw new Error("Telegram payload missing message.from.id");
+    if (chatId === undefined || chatId === null) throw new Error("Telegram payload missing message.chat.id");
+
+    const id = asString(msg.message_id?.toString?.()) ?? `tg_${Date.now()}`;
+
+    return {
+      id,
+      provider,
+      type: "message.received",
+      channel: "telegram",
+      occurredAt: isoNow(),
+      // Use a stable external identity string; store can map this to customerId.
+      customerExternalId: `tg_user:${String(fromId)}`,
+      conversationExternalId: `tg_chat:${String(chatId)}`,
+      text: text ? redactPII(text) : undefined,
+      metadata: {
+        telegram: {
+          user_id: fromId,
+          chat_id: chatId,
+          username: asString(msg.from?.username),
+          first_name: asString(msg.from?.first_name),
+          last_name: asString(msg.from?.last_name)
+        }
+      }
+    };
+  }
+
   throw new Error(`Unsupported provider: ${provider}`);
 }

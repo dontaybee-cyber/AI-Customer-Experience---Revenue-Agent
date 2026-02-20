@@ -5,6 +5,11 @@
     "rootDir": "./src",
     "composite": true
   },
-  "references": [{ "path": "../../packages/shared" }, { "path": "../../packages/memory" }, { "path": "../../packages/trigger-engine" }],
+  "references": [
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/memory" },
+    { "path": "../../packages/trigger-engine" },
+    { "path": "../../packages/connectors" }
+  ],
   "include": ["src/**/*.ts"]
 }

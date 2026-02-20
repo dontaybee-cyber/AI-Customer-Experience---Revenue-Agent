@@ -1,6 +1,6 @@
 import type { Channel } from "../../../packages/shared/src/index.js";
 
-export type Provider = "twilio" | "vapi" | "webchat";
+export type Provider = "twilio" | "vapi" | "webchat" | "telegram";
 
 export type InternalEventType =
   | "message.received"

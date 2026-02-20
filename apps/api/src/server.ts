@@ -5,6 +5,7 @@ import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
 import { Orchestrator } from "./orchestrator.js";
 import { InMemoryContinuityStore } from "./store/inMemoryStore.js";
+import { sendMessage, escapeMarkdownV2 } from "../../../packages/connectors/src/telegram.js";
 
 const app = Fastify({
   logger: true
@@ -51,6 +52,22 @@ app.post("/webhooks/:provider", async (req: FastifyRequest, reply: FastifyReply)
   });
 
   const result = await orchestrator.processEvent(event);
+
+  // Direct response path for Telegram: send the LLM output back to the chat_id.
+  if (event.provider === "telegram") {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = (event.metadata as any)?.telegram?.chat_id;
+
+    if (botToken && chatId && result.responseText) {
+      // Use MarkdownV2 by default; escape to avoid formatting errors.
+      await sendMessage({
+        botToken,
+        chatId,
+        parseMode: "MarkdownV2",
+        text: escapeMarkdownV2(result.responseText)
+      });
+    }
+  }
 
   // For Twilio SMS, you would return TwiML. For MVP, return JSON.
   return reply.send(result);
