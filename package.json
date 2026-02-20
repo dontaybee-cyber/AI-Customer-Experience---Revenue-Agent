@@ -1,0 +1,21 @@
+{
+  "name": "ai-cx-revenue-agent",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI Customer Experience & Revenue Agent monorepo (omnichannel shared memory + trigger engine + connectors).",
+  "packageManager": "pnpm@9.15.5",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "typescript": "^5.9.3"
+  }
+}
