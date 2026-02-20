@@ -1,6 +1,6 @@
 import { getContext } from "../../../packages/memory/src/index.js";
-import { evaluateTriggers } from "../../../packages/trigger-engine/src/index.js";
 import { hashIdentifier, redactPII } from "./pii.js";
+import { triggerQueue } from "./queue.js";
 export class Orchestrator {
     deps;
     constructor(deps) {
@@ -31,6 +31,11 @@ export class Orchestrator {
             }
         });
         // For MVP: if identity is unknown, we fail closed in getContext().
+        // Context injection requirements:
+        // - recent messages (20)
+        // - semantic hits (8)
+        // - memory summaries (3)
+        // - active ticket status (via store.getOpenTickets)
         const context = await getContext(this.deps.continuityStore, {
             channel: event.channel,
             externalUserId: event.customerExternalId,
@@ -54,62 +59,28 @@ export class Orchestrator {
         for await (const tok of this.deps.llm.streamChat({ messages: [system, user] })) {
             responseText += tok.token;
         }
-        // Fire triggers asynchronously (do not block response path)
-        const triggerPromise = (async () => {
-            const triggerEval = await evaluateTriggers(this.deps.triggerDeps, {
-                customerId: context.customerId,
-                event: {
-                    id: event.id,
-                    type: event.type,
-                    channel: event.channel,
-                    occurredAt: event.occurredAt,
-                    customerExternalId: event.customerExternalId,
-                    conversationExternalId: event.conversationExternalId,
-                    text: event.text,
-                    metadata: event.metadata
-                },
-                recentMessages: context.recentMessages
-            });
-            // Example CRM sync action dispatch (adapter is optional)
-            for (const action of triggerEval.actions) {
-                if (action.type === "crm_sync" && this.deps.triggerDeps.crm) {
-                    await this.deps.triggerDeps.crm.upsertContact({
-                        customerId: context.customerId,
-                        properties: {
-                            last_channel: event.channel,
-                            sentiment_ema: triggerEval.signals.sentimentEma,
-                            churn_risk: triggerEval.signals.churnRisk,
-                            buying_signal: triggerEval.signals.buyingSignal
-                        }
-                    });
-                }
-            }
-            await this.deps.audit.write({
-                at: new Date().toISOString(),
-                actor: "system",
-                action: "triggers_evaluated",
-                resourceType: "internal_event",
-                resourceId: event.id,
-                details: {
-                    customerId: context.customerId,
-                    sentimentEma: triggerEval.signals.sentimentEma,
-                    churnRisk: triggerEval.signals.churnRisk,
-                    actions: triggerEval.actions
-                }
-            });
-            return triggerEval.actions;
-        })();
-        // Do not await; but capture actions if it finishes quickly
-        let triggerActions = [];
-        try {
-            triggerActions = await Promise.race([
-                triggerPromise,
-                new Promise((resolve) => setTimeout(() => resolve([]), 50))
-            ]);
-        }
-        catch {
-            // ignore trigger failures on response path
-        }
+        // Enqueue trigger evaluation (observer pattern) so response path stays fast.
+        // Worker will run `evaluateTriggers()` and dispatch actions (escalate/pivot/crm_sync).
+        await triggerQueue.add("evaluate_triggers", {
+            customerId: context.customerId,
+            event: {
+                id: event.id,
+                provider: event.provider,
+                type: event.type,
+                channel: event.channel,
+                occurredAt: event.occurredAt,
+                customerExternalId: event.customerExternalId,
+                conversationExternalId: event.conversationExternalId,
+                text: event.text,
+                metadata: event.metadata
+            },
+            recentMessages: context.recentMessages
+        }, {
+            removeOnComplete: true,
+            removeOnFail: 100
+        });
+        // Response path does not wait for triggers.
+        const triggerActions = [];
         await this.deps.audit.write({
             at: new Date().toISOString(),
             actor: "system",
