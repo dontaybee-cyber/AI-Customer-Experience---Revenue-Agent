@@ -17,14 +17,28 @@ export class TriggerEngine {
     ];
   }
 
-  detectBuyingSignals(message: Message): boolean {
+  async detectBuyingSignals(message: Message): Promise<boolean> {
     if (message.content) {
       for (const keyword of this.buyingSignalKeywords) {
         if (keyword.test(message.content)) {
           return true;
         }
       }
+      // If no keywords are found, use LLM for intent recognition
+      return this.detectBuyingSignalsWithLLM(message);
     }
     return false;
+  }
+
+  /**
+   * @deprecated Mock implementation. Replace with a real LLM call.
+   */
+  private async detectBuyingSignalsWithLLM(message: Message): Promise<boolean> {
+    console.warn(`[MOCK] Using LLM to detect buying signals for message: "${message.content}"`);
+    // Mock LLM call to check for buying intent.
+    // In a real implementation, this would call a language model to classify the message content.
+    const buyingIntents = ["upgrade", "team", "enterprise", "feature compatibility"];
+    const lowerCaseContent = message.content.toLowerCase();
+    return buyingIntents.some(intent => lowerCaseContent.includes(intent));
   }
 }

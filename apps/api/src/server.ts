@@ -4,8 +4,8 @@ import { ConsoleAuditLogger } from "./audit.js";
 import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
 import { Orchestrator } from "./orchestrator.js";
-import { InMemoryContinuityStore } from "./store/inMemoryStore.js";
-import { TelegramConnector, escapeMarkdownV2 } from "../../../packages/connectors/src/telegram.js";
+import { getContext } from "@acx/memory";
+import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors/telegram";
 
 const app = Fastify({
   logger: true
@@ -14,24 +14,15 @@ const app = Fastify({
 const audit = new ConsoleAuditLogger();
 const llm = new StubLlmClient();
 
-// Seed a demo customer identity so getContext() can resolve it.
-const store = new InMemoryContinuityStore({
-  customerId: "cust_demo_001",
-  identities: [
-    { channel: "sms", externalUserId: "+15551234567" },
-    { channel: "web", externalUserId: "web_demo_user" },
-    { channel: "voice", externalUserId: "+15551234567" }
-  ]
-});
-
 const orchestrator = new Orchestrator({
-  continuityStore: store,
-  triggerDeps: { store },
+  getContext,
+  triggerDeps: { getContext },
   llm,
   audit
 });
 
 app.get("/health", async () => ({ ok: true }));
+
 
 /**
  * Webhook endpoints (MVP)

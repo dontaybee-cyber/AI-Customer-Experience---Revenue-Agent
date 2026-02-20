@@ -1,11 +1,11 @@
 import { Worker } from "bullmq";
 
 import { ConsoleAuditLogger } from "./audit.js";
+import { SupabaseContinuityStore } from "@acx/memory/supabaseStore";
 import { triggerQueue } from "./queue.js";
-import { InMemoryContinuityStore } from "./store/inMemoryStore.js";
 
-import { evaluateTriggers } from "../../../packages/trigger-engine/src/index.js";
-import { TelegramConnector } from "../../../packages/connectors/src/telegram.js";
+import { evaluateTriggers } from "@acx/trigger-engine";
+import { TelegramConnector } from "@acx/connectors/telegram";
 
 /**
  * BullMQ worker for async trigger processing.
@@ -16,14 +16,7 @@ import { TelegramConnector } from "../../../packages/connectors/src/telegram.js"
 const audit = new ConsoleAuditLogger();
 
 // For MVP: use same in-memory store shape. In production, this would be a shared DB-backed store.
-const store = new InMemoryContinuityStore({
-  customerId: "cust_demo_001",
-  identities: [
-    { channel: "sms", externalUserId: "+15551234567" },
-    { channel: "web", externalUserId: "web_demo_user" },
-    { channel: "voice", externalUserId: "+15551234567" }
-  ]
-});
+const store = new SupabaseContinuityStore();
 
 const worker = new Worker(
   triggerQueue.name,
