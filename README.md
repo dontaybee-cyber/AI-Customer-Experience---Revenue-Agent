@@ -25,6 +25,14 @@ npm install
 node apps/api/dist/server.js
 ```
 
+4) Run Trigger Worker (BullMQ):
+```bash
+node apps/api/dist/worker.js
+```
+
+Notes:
+- Requires Redis running (default `redis://localhost:6379`). Override with `REDIS_URL`.
+
 Health check:
 - `GET http://localhost:3001/health`
 
