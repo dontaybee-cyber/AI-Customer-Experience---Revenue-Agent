@@ -2,6 +2,8 @@
   "files": [],
   "references": [
     { "path": "./packages/shared" },
-    { "path": "./packages/memory" }
+    { "path": "./packages/memory" },
+    { "path": "./packages/trigger-engine" },
+    { "path": "./apps/api" }
   ]
 }
