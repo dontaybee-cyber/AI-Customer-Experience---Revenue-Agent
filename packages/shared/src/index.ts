@@ -1,10 +1,10 @@
-export type Channel = "sms" | "voice" | "web" | "email";
+export type Channel = "sms" | "voice" | "web" | "email" | "telegram";
 
 export type Direction = "in" | "out";
 
 export type ISODateString = string;
 
-export type CustomerIdentityType = "phone" | "email" | "web" | "whatsapp" | "crm";
+export type CustomerIdentityType = "phone" | "email" | "web" | "whatsapp" | "crm" | "telegram";
 
 export interface CustomerIdentity {
   type: CustomerIdentityType;

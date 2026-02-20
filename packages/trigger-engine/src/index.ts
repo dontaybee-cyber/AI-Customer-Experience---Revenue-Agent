@@ -27,7 +27,7 @@ export interface SignalSnapshot {
 }
 
 export interface TriggerAction {
-  type: "escalate" | "pivot_to_sales" | "crm_sync";
+  type: "escalate" | "pivot_to_sales" | "crm_sync" | "admin_alert";
   reason: string;
   payload?: Record<string, unknown>;
 }
@@ -138,6 +138,15 @@ export async function evaluateTriggers(deps: TriggerEngineDeps, input: EvaluateI
       type: "pivot_to_sales",
       reason: "buying signal detected and support appears resolved",
       payload: { buyingSignal, supportResolvedSignal }
+    });
+  }
+
+  // Admin alert rule (high churn risk)
+  if (churnRisk > 0.7) {
+    actions.push({
+      type: "admin_alert",
+      reason: `churn_risk ${churnRisk.toFixed(2)} > 0.7`,
+      payload: { sentimentEma, churnRisk, buyingSignal }
     });
   }
 

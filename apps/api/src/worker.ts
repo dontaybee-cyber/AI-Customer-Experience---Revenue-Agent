@@ -5,6 +5,7 @@ import { triggerQueue } from "./queue.js";
 import { InMemoryContinuityStore } from "./store/inMemoryStore.js";
 
 import { evaluateTriggers } from "../../../packages/trigger-engine/src/index.js";
+import { TelegramConnector } from "../../../packages/connectors/src/telegram.js";
 
 /**
  * BullMQ worker for async trigger processing.
@@ -57,6 +58,27 @@ const worker = new Worker(
     // - escalate: send to pager/slack
     // - pivot_to_sales: create lead/opportunity
     // - crm_sync: call CRM adapter
+    // - admin_alert: send Telegram alert to TELEGRAM_ADMIN_CHAT_ID
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+
+    if (botToken && adminChatId) {
+      const tg = new TelegramConnector({ botToken, adminChatId });
+
+      // Alert on churn_risk > 0.7 OR sentiment_ema < -0.35 (both are represented by actions)
+      const shouldAlert = result.actions.some((a) => a.type === "admin_alert" || a.type === "escalate");
+      if (shouldAlert) {
+        await tg.sendAdminAlert({
+          customerId,
+          customerName: "Unknown", // avoid PII; wire to CRM/profile later
+          churnRisk: result.signals.churnRisk,
+          sentimentEma: result.signals.sentimentEma,
+          channel: event?.channel ?? "unknown",
+          textPreviewRedacted: (event?.text ?? "").slice(0, 200)
+        });
+      }
+    }
+
     return result;
   },
   {

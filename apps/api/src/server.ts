@@ -5,7 +5,7 @@ import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
 import { Orchestrator } from "./orchestrator.js";
 import { InMemoryContinuityStore } from "./store/inMemoryStore.js";
-import { sendMessage, escapeMarkdownV2 } from "../../../packages/connectors/src/telegram.js";
+import { TelegramConnector, escapeMarkdownV2 } from "../../../packages/connectors/src/telegram.js";
 
 const app = Fastify({
   logger: true
@@ -59,9 +59,9 @@ app.post("/webhooks/:provider", async (req: FastifyRequest, reply: FastifyReply)
     const chatId = (event.metadata as any)?.telegram?.chat_id;
 
     if (botToken && chatId && result.responseText) {
+      const tg = new TelegramConnector({ botToken });
       // Use MarkdownV2 by default; escape to avoid formatting errors.
-      await sendMessage({
-        botToken,
+      await tg.sendMessage({
         chatId,
         parseMode: "MarkdownV2",
         text: escapeMarkdownV2(result.responseText)
