@@ -70,6 +70,54 @@ export interface ContinuityContext {
   openTickets: OpenTicket[];
 }
 
+export interface VapiCall {
+    id: string;
+    // other props
+}
+  
+export interface VapiCustomer {
+    number: string;
+    // other props
+}
+
+export interface VapiRequestMessage {
+    type: 'assistant-request';
+    call: VapiCall;
+    customer: VapiCustomer;
+}
+  
+export interface VapiRequest {
+    message: VapiRequestMessage;
+}
+  
+export interface VapiEndReportMessage {
+      type: 'end-of-call-report';
+      summary: string;
+      transcript: string;
+      recordingUrl: string;
+      // other props
+}
+  
+export interface VapiEndReport {
+      message: VapiEndReportMessage;
+}
+  
+export interface VapiResponse {
+    assistant: {
+      model: {
+        provider: 'openai';
+        model: 'gpt-3.5-turbo';
+        messages: [
+          {
+            role: 'system';
+            content: string;
+          }
+        ];
+      };
+      firstMessage?: string;
+    };
+}
+
 export type InternalEventType =
   | "message.received"
   | "message.sent"
