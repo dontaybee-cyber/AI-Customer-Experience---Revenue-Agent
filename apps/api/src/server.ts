@@ -7,10 +7,14 @@ import { Orchestrator } from "./orchestrator.js";
 import { SupabaseContinuityStore } from "@acx/memory";
 import { HubSpotAdapter } from "@acx/connectors";
 import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors";
+import voiceRoutes from "./routes/voice.js";
 
 const app = Fastify({
   logger: true,
 });
+
+// Register the voice routes
+app.register(voiceRoutes);
 
 const audit = new ConsoleAuditLogger();
 const llm = new StubLlmClient();

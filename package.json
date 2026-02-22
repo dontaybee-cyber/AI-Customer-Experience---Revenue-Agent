@@ -21,6 +21,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
     "bullmq": "^5.69.3",
+    "express": "^5.2.1",
     "fastify": "^5.7.4",
     "ioredis": "^5.9.3",
     "pg": "^8.18.0"
