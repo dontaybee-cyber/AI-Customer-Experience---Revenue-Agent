@@ -1,4 +1,4 @@
-import type { Channel, MessageRecord } from "../../shared/src/index.js";
+import type { Channel, MessageRecord, InternalEvent, CRMAdapter, TriggerAction } from "../../shared/src/index.js";
 
 export type InternalEventType =
   | "message.received"
@@ -6,17 +6,6 @@ export type InternalEventType =
   | "call.transcript"
   | "ticket.updated"
   | "system.error";
-
-export interface InternalEvent {
-  id: string;
-  type: InternalEventType;
-  channel: Channel;
-  occurredAt: string; // ISO
-  customerExternalId: string; // phone/email/web id (raw at runtime; do not persist unmasked)
-  conversationExternalId?: string;
-  text?: string; // redacted text preferred
-  metadata?: Record<string, unknown>;
-}
 
 export interface SignalSnapshot {
   sentimentScore: number; // [-1, 1]
@@ -26,26 +15,14 @@ export interface SignalSnapshot {
   supportResolvedSignal: boolean;
 }
 
-export interface TriggerAction {
-  type: "escalate" | "pivot_to_sales" | "crm_sync" | "admin_alert";
-  reason: string;
-  payload?: Record<string, unknown>;
-}
-
 export interface TriggerEngineStore {
   getSentimentEma(customerId: string): Promise<number | null>;
   setSentimentEma(customerId: string, value: number): Promise<void>;
 }
 
-export interface CrmAdapter {
-  upsertContact(input: { customerId: string; properties: Record<string, unknown> }): Promise<void>;
-  upsertTicket(input: { customerId: string; properties: Record<string, unknown> }): Promise<void>;
-  upsertOpportunity?(input: { customerId: string; properties: Record<string, unknown> }): Promise<void>;
-}
-
 export interface TriggerEngineDeps {
   store: TriggerEngineStore;
-  crm?: CrmAdapter;
+  crm?: CRMAdapter;
 }
 
 export interface EvaluateInput {

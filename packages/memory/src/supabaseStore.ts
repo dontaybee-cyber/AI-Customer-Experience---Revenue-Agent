@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import "dotenv/config";
 import type {
     Channel,
+    ContinuityStore,
     CustomerProfile,
     MemorySummary,
     MessageRecord,
@@ -9,10 +10,9 @@ import type {
     SemanticMemoryHit
   } from "../../shared/src/index.js";
   import { createHash } from "crypto";
-import { TriggerEngineStore } from "@acx/trigger-engine";
 
   // Abstraction for Supabase queries
-export class SupabaseContinuityStore implements TriggerEngineStore {
+export class SupabaseContinuityStore implements ContinuityStore {
     private client: SupabaseClient;
   
     constructor() {
@@ -153,7 +153,7 @@ export class SupabaseContinuityStore implements TriggerEngineStore {
         conversationId: string,
         textRedacted: string,
         embedding: number[]
-      ) {
+      ): Promise<void> {
         const { error } = await this.client.from("embeddings").insert({
           id: messageId,
           customer_id: customerId,

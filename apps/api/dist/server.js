@@ -3,27 +3,25 @@ import { ConsoleAuditLogger } from "./audit.js";
 import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
 import { Orchestrator } from "./orchestrator.js";
-import { InMemoryContinuityStore } from "./store/inMemoryStore.js";
-import { sendMessage, escapeMarkdownV2 } from "../../../packages/connectors/src/telegram.js";
+import { SupabaseContinuityStore } from "@acx/memory";
+import { HubSpotAdapter } from "@acx/connectors";
+import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors";
 const app = Fastify({
-    logger: true
+    logger: true,
 });
 const audit = new ConsoleAuditLogger();
 const llm = new StubLlmClient();
-// Seed a demo customer identity so getContext() can resolve it.
-const store = new InMemoryContinuityStore({
-    customerId: "cust_demo_001",
-    identities: [
-        { channel: "sms", externalUserId: "+15551234567" },
-        { channel: "web", externalUserId: "web_demo_user" },
-        { channel: "voice", externalUserId: "+15551234567" }
-    ]
-});
+const continuityStore = new SupabaseContinuityStore();
+const crmAdapter = new HubSpotAdapter(process.env.HUBSPOT_ACCESS_TOKEN || "");
+const triggerDeps = {
+    store: continuityStore,
+    crm: crmAdapter,
+};
 const orchestrator = new Orchestrator({
-    continuityStore: store,
-    triggerDeps: { store },
+    continuityStore,
+    triggerDeps,
     llm,
-    audit
+    audit,
 });
 app.get("/health", async () => ({ ok: true }));
 /**
@@ -48,9 +46,9 @@ app.post("/webhooks/:provider", async (req, reply) => {
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
         const chatId = event.metadata?.telegram?.chat_id;
         if (botToken && chatId && result.responseText) {
+            const tg = new TelegramConnector({ botToken });
             // Use MarkdownV2 by default; escape to avoid formatting errors.
-            await sendMessage({
-                botToken,
+            await tg.sendMessage({
                 chatId,
                 parseMode: "MarkdownV2",
                 text: escapeMarkdownV2(result.responseText)

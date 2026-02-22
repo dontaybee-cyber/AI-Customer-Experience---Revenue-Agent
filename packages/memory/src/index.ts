@@ -1,14 +1,30 @@
 import type {
-  Channel,
-  ContinuityContext,
-  CustomerProfile,
-  MemorySummary,
-  MessageRecord,
-  OpenTicket,
-  SemanticMemoryHit
-} from "../../shared/src/index.js";
-
+    Channel,
+    ContinuityContext,
+    CustomerProfile,
+    MemorySummary,
+    MessageRecord,
+    OpenTicket,
+    SemanticMemoryHit,
+  } from "../../shared/src/index.js";
 import { SupabaseContinuityStore } from "./supabaseStore.js";
+
+export interface ContinuityStore {
+    resolveCustomerId(input: { channel: Channel; externalUserId: string }): Promise<string | null>;
+    getCustomerProfile(customerId: string): Promise<CustomerProfile>;
+    getRecentMessages(input: {
+        customerId: string;
+        conversationId?: string;
+        limit: number;
+    }): Promise<MessageRecord[]>;
+    getLatestSummaries(input: { customerId: string; limit: number }): Promise<MemorySummary[]>;
+    semanticSearch(input: {
+        customerId: string;
+        query: string;
+        limit: number;
+      }): Promise<SemanticMemoryHit[]>;
+    getOpenTickets(customerId: string): Promise<OpenTicket[]>;
+}
 
 export interface GetContextInput {
   channel: Channel;
@@ -32,8 +48,7 @@ export interface GetContextInput {
  *
  * Designed for <2s response path: all calls should be indexed + fast; heavy work async.
  */
-export async function getContext(input: GetContextInput): Promise<ContinuityContext> {
-  const store = new SupabaseContinuityStore();
+export async function getContext(store: ContinuityStore, input: GetContextInput): Promise<ContinuityContext> {
   const recentMessagesLimit = input.limits?.recentMessages ?? 20;
   const summariesLimit = input.limits?.summaries ?? 3;
   const semanticHitsLimit = input.limits?.semanticHits ?? 8;
@@ -65,4 +80,6 @@ export async function getContext(input: GetContextInput): Promise<ContinuityCont
     openTickets
   };
 }
+
+export { SupabaseContinuityStore };
 

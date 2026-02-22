@@ -1,3 +1,3 @@
 
-export * from './TriggerEngine';
-export * from './PivotManager';
+export * from "./TriggerEngine.js";
+export * from "./PivotManager.js";

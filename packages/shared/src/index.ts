@@ -69,3 +69,71 @@ export interface ContinuityContext {
   semanticMemories: SemanticMemoryHit[];
   openTickets: OpenTicket[];
 }
+
+export type InternalEventType =
+  | "message.received"
+  | "message.sent"
+  | "call.transcript"
+  | "ticket.updated"
+  | "system.error";
+
+export interface InternalEvent {
+  id: string;
+  type: InternalEventType;
+  channel: Channel;
+  provider: Provider;
+  occurredAt: string; // ISO
+  customerExternalId: string; // phone/email/web id (raw at runtime; do not persist unmasked)
+  conversationExternalId?: string;
+  text?: string; // redacted text preferred
+  metadata?: Record<string, unknown>;
+}
+
+export interface CRMAdapter {
+  upsertContact(profile: CustomerProfile): Promise<string>;
+  createTicket(ticket: OpenTicket): Promise<string>;
+  logEngagement(customerId: string, activity: string): Promise<void>;
+  createDeal(customerId: string, dealStage?: string): Promise<string>;
+}
+
+export type Provider = "twilio" | "vapi" | "webchat" | "telegram";
+
+export interface TriggerAction {
+    type: "escalate" | "pivot_to_sales" | "crm_sync" | "admin_alert";
+    reason: string;
+    payload?: Record<string, unknown>;
+}
+
+export interface OrchestratorResult {
+    eventId: string;
+    customerId: string;
+    responseText: string;
+    triggerActions: TriggerAction[];
+}
+
+export interface ContinuityStore {
+    resolveCustomerId(input: { channel: Channel; externalUserId: string }): Promise<string | null>;
+    getCustomerProfile(customerId: string): Promise<CustomerProfile>;
+    getRecentMessages(input: {
+      customerId: string;
+      conversationId?: string;
+      limit: number;
+    }): Promise<MessageRecord[]>;
+    getLatestSummaries(input: { customerId: string; limit: number }): Promise<MemorySummary[]>;
+    semanticSearch(input: {
+      customerId: string;
+      query: string;
+      limit: number;
+    }): Promise<SemanticMemoryHit[]>;
+    getOpenTickets(customerId: string): Promise<OpenTicket[]>;
+    saveEmbedding(
+      messageId: string,
+      customerId: string,
+      conversationId: string,
+      textRedacted: string,
+      embedding: number[],
+    ): Promise<void>;
+    getMessagesWithoutEmbeddings(): Promise<MessageRecord[]>;
+    getSentimentEma(customerId: string): Promise<number | null>;
+    setSentimentEma(customerId: string, value: number): Promise<void>;
+  }

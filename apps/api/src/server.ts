@@ -4,21 +4,29 @@ import { ConsoleAuditLogger } from "./audit.js";
 import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
 import { Orchestrator } from "./orchestrator.js";
-import { getContext } from "@acx/memory";
-import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors/telegram";
+import { SupabaseContinuityStore } from "@acx/memory";
+import { HubSpotAdapter } from "@acx/connectors";
+import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors";
 
 const app = Fastify({
-  logger: true
+  logger: true,
 });
 
 const audit = new ConsoleAuditLogger();
 const llm = new StubLlmClient();
+const continuityStore = new SupabaseContinuityStore();
+const crmAdapter = new HubSpotAdapter(process.env.HUBSPOT_ACCESS_TOKEN || "");
+
+const triggerDeps = {
+  store: continuityStore,
+  crm: crmAdapter,
+};
 
 const orchestrator = new Orchestrator({
-  getContext,
-  triggerDeps: { getContext },
+  continuityStore,
+  triggerDeps,
   llm,
-  audit
+  audit,
 });
 
 app.get("/health", async () => ({ ok: true }));

@@ -1,5 +1,4 @@
-import type { Channel } from "../../../packages/shared/src/index.js";
-import type { InternalEvent, Provider } from "./types.js";
+import type { Channel, InternalEvent, Provider } from "@acx/shared";
 import { redactPII } from "./pii.js";
 
 function isoNow() {

@@ -1,4 +1,5 @@
 import type { Channel, ContinuityContext, CustomerProfile, MemorySummary, MessageRecord, OpenTicket, SemanticMemoryHit } from "../../shared/src/index.js";
+import { SupabaseContinuityStore } from "./supabaseStore.js";
 export interface ContinuityStore {
     resolveCustomerId(input: {
         channel: Channel;
@@ -43,4 +44,5 @@ export interface GetContextInput {
  * Designed for <2s response path: all calls should be indexed + fast; heavy work async.
  */
 export declare function getContext(store: ContinuityStore, input: GetContextInput): Promise<ContinuityContext>;
+export { SupabaseContinuityStore };
 //# sourceMappingURL=index.d.ts.map

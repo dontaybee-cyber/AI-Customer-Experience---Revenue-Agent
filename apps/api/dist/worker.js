@@ -1,8 +1,10 @@
 import { Worker } from "bullmq";
 import { ConsoleAuditLogger } from "./audit.js";
 import { triggerQueue } from "./queue.js";
-import { InMemoryContinuityStore } from "./store/inMemoryStore.js";
-import { evaluateTriggers } from "../../../packages/trigger-engine/src/index.js";
+import { evaluateTriggers } from "@acx/trigger-engine";
+import { SupabaseContinuityStore } from "@acx/memory";
+import { TelegramConnector } from "@acx/connectors";
+import { HubSpotAdapter } from "@acx/connectors";
 /**
  * BullMQ worker for async trigger processing.
  * - Keeps orchestrator stateless and response path fast.
@@ -10,22 +12,16 @@ import { evaluateTriggers } from "../../../packages/trigger-engine/src/index.js"
  */
 const audit = new ConsoleAuditLogger();
 // For MVP: use same in-memory store shape. In production, this would be a shared DB-backed store.
-const store = new InMemoryContinuityStore({
-    customerId: "cust_demo_001",
-    identities: [
-        { channel: "sms", externalUserId: "+15551234567" },
-        { channel: "web", externalUserId: "web_demo_user" },
-        { channel: "voice", externalUserId: "+15551234567" }
-    ]
-});
+const store = new SupabaseContinuityStore();
+const crm = new HubSpotAdapter(process.env.HUBSPOT_ACCESS_TOKEN || "");
 const worker = new Worker(triggerQueue.name, async (job) => {
     if (job.name !== "evaluate_triggers")
         return;
     const { customerId, event, recentMessages } = job.data;
-    const result = await evaluateTriggers({ store }, {
+    const result = await evaluateTriggers({ store, crm }, {
         customerId,
         event,
-        recentMessages
+        recentMessages,
     });
     await audit.write({
         at: new Date().toISOString(),
@@ -36,16 +32,48 @@ const worker = new Worker(triggerQueue.name, async (job) => {
         details: {
             customerId,
             signals: result.signals,
-            actions: result.actions
-        }
+            actions: result.actions,
+        },
     });
     // Dispatch stubs:
     // - escalate: send to pager/slack
     // - pivot_to_sales: create lead/opportunity
     // - crm_sync: call CRM adapter
+    // - admin_alert: send Telegram alert to TELEGRAM_ADMIN_CHAT_ID
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    const tg = new TelegramConnector({ botToken: botToken || "" });
+    for (const action of result.actions) {
+        switch (action.type) {
+            case "admin_alert":
+            case "escalate":
+                if (botToken && adminChatId) {
+                    await tg.sendAdminAlert({
+                        customerId,
+                        customerName: "Unknown", // avoid PII; wire to CRM/profile later
+                        churnRisk: result.signals.churnRisk,
+                        sentimentEma: result.signals.sentimentEma,
+                        channel: event?.channel ?? "unknown",
+                        textPreviewRedacted: (event?.text ?? "").slice(0, 200),
+                    });
+                }
+                break;
+            case "crm_sync":
+                if (crm) {
+                    const profile = await store.getCustomerProfile(customerId);
+                    await crm.upsertContact(profile);
+                }
+                break;
+            case "pivot_to_sales":
+                if (crm) {
+                    await crm.createDeal(customerId);
+                }
+                break;
+        }
+    }
     return result;
 }, {
-    connection: triggerQueue.opts.connection
+    connection: triggerQueue.opts.connection,
 });
 worker.on("failed", async (job, err) => {
     await audit.write({
@@ -54,7 +82,7 @@ worker.on("failed", async (job, err) => {
         action: "trigger_job_failed",
         resourceType: "bullmq_job",
         resourceId: String(job?.id ?? "unknown"),
-        details: { error: err.message }
+        details: { error: err.message },
     });
 });
 //# sourceMappingURL=worker.js.map

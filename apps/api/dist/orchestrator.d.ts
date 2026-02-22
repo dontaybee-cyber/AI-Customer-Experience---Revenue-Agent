@@ -1,7 +1,7 @@
-import type { ContinuityStore } from "../../../packages/memory/src/index.js";
-import type { TriggerEngineDeps } from "../../../packages/trigger-engine/src/index.js";
+import type { ContinuityStore } from "@acx/memory";
+import type { InternalEvent, OrchestratorResult } from "@acx/shared";
+import type { TriggerEngineDeps } from "@acx/trigger-engine";
 import type { AuditLogger } from "./audit.js";
-import type { InternalEvent, OrchestratorResult } from "./types.js";
 import type { LlmClient } from "./llm.js";
 export interface OrchestratorDeps {
     continuityStore: ContinuityStore;

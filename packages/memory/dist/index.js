@@ -1,3 +1,4 @@
+import { SupabaseContinuityStore } from "./supabaseStore.js";
 /**
  * Contextual Continuity Engine
  * - Resolves identity across channels to a stable customerId
@@ -36,4 +37,5 @@ export async function getContext(store, input) {
         openTickets
     };
 }
+export { SupabaseContinuityStore };
 //# sourceMappingURL=index.js.map

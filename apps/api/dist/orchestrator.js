@@ -1,4 +1,4 @@
-import { getContext } from "../../../packages/memory/src/index.js";
+import { getContext } from "@acx/memory";
 import { hashIdentifier, redactPII } from "./pii.js";
 import { triggerQueue } from "./queue.js";
 export class Orchestrator {

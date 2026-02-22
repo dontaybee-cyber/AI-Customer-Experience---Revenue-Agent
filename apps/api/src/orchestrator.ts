@@ -1,12 +1,10 @@
-import type { ContinuityStore } from "../../../packages/memory/src/index.js";
-import { getContext } from "../../../packages/memory/src/index.js";
-import type { MessageRecord } from "../../../packages/shared/src/index.js";
-import type { TriggerEngineDeps } from "../../../packages/trigger-engine/src/index.js";
-import { evaluateTriggers } from "../../../packages/trigger-engine/src/index.js";
+import type { ContinuityStore } from "@acx/memory";
+import { getContext } from "@acx/memory";
+import type { MessageRecord, InternalEvent, OrchestratorResult, OpenTicket } from "@acx/shared";
+import type { TriggerEngineDeps } from "@acx/trigger-engine";
 
 import type { AuditLogger } from "./audit.js";
 import { hashIdentifier, redactPII } from "./pii.js";
-import type { InternalEvent, OrchestratorResult } from "./types.js";
 import type { LlmClient, LlmMessage } from "./llm.js";
 import { triggerQueue } from "./queue.js";
 
@@ -129,7 +127,7 @@ export class Orchestrator {
     };
   }
 
-  private formatContextForPrompt(recent: MessageRecord[], semantic: string[], openTickets: any[]): string {
+  private formatContextForPrompt(recent: MessageRecord[], semantic: string[], openTickets: OpenTicket[]): string {
     const recentLines = recent
       .slice(-20)
       .map((m: MessageRecord) => `${m.direction === "in" ? "USER" : "AGENT"}(${m.channel}): ${m.contentRedacted}`)
@@ -139,7 +137,7 @@ export class Orchestrator {
 
     const ticketLines = (openTickets ?? [])
       .slice(0, 5)
-      .map((t: any) => `- ${t.id} [${t.status}] priority=${t.priority} intent=${t.intent ?? "unknown"}`)
+      .map((t: OpenTicket) => `- ${t.id} [${t.status}] priority=${t.priority} intent=${t.intent ?? "unknown"}`)
       .join("\n");
 
     return [

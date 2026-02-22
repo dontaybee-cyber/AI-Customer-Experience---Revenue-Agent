@@ -1,4 +1,4 @@
-import type { InternalEvent, Provider } from "./types.js";
+import type { InternalEvent, Provider } from "@acx/shared";
 /**
  * Normalize inbound provider payloads into a unified InternalEvent schema.
  * This is the only place that should know provider-specific shapes.

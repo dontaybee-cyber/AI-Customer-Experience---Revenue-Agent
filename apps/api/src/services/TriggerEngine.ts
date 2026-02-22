@@ -1,5 +1,5 @@
 
-import { Message } from '../types';
+import type { Message } from "../types.js";
 
 export class TriggerEngine {
   private buyingSignalKeywords: RegExp[];

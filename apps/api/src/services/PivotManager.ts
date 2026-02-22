@@ -1,8 +1,8 @@
 
-import { TriggerEngine } from './TriggerEngine';
-import { Message } from '../types';
-import { TelegramConnector } from '../../../packages/connectors/src/telegram';
-import { ConsoleAuditLogger, AuditEvent } from '../audit';
+import { TriggerEngine } from "./TriggerEngine.js";
+import type { Message } from "../types.js";
+import { TelegramConnector } from "@acx/connectors";
+import { ConsoleAuditLogger, type AuditEvent } from "../audit.js";
 
 export enum AgentState {
   SUPPORT_TRIAGE = 'SUPPORT_TRIAGE',
