@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/memory" },
+    { "path": "./packages/trigger-engine" },
+    { "path": "./packages/connectors" },
+    { "path": "./apps/api" }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "acx-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --enable-source-maps dist/server.js",
+    "dev:worker": "node --watch --enable-source-maps dist/worker.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@acx/connectors": "workspace:*",
+    "@acx/memory": "workspace:*",
+    "@acx/shared": "workspace:*",
+    "@acx/trigger-engine": "workspace:*",
+    "fastify": "^5.2.1"
+  }
+}

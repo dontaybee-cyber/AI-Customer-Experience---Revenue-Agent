@@ -1,0 +1,27 @@
+{
+  "name": "@acx/memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "dev": "tsc -w -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo \"(lint placeholder)\"",
+    "test": "echo \"(test placeholder)\""
+  },
+  "dependencies": {
+    "@acx/shared": "workspace:*",
+    "@acx/trigger-engine": "workspace:*",
+    "@supabase/supabase-js": "^2.39.3",
+    "dotenv": "^16.3.1"
+  }
+}
