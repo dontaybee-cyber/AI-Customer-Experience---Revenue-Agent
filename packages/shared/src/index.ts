@@ -161,7 +161,9 @@ export interface OrchestratorResult {
 
 export interface ContinuityStore {
     resolveCustomerId(input: { channel: Channel; externalUserId: string }): Promise<string | null>;
+    createCustomerAndIdentity(input: { channel: Channel; externalUserId: string }): Promise<CustomerProfile>;
     getCustomerProfile(customerId: string): Promise<CustomerProfile>;
+    updateCustomerProfile(customerId: string, updates: Partial<CustomerProfile>): Promise<CustomerProfile>;
     getRecentMessages(input: {
       customerId: string;
       conversationId?: string;

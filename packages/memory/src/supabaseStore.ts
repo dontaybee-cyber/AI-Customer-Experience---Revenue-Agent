@@ -57,6 +57,52 @@ export class SupabaseContinuityStore implements ContinuityStore {
         return data as CustomerProfile;
     }
 
+    async createCustomerAndIdentity(input: { channel: Channel; externalUserId: string }): Promise<CustomerProfile> {
+        // Create a new customer
+        const { data: customerData, error: customerError } = await this.client
+            .from('customers')
+            .insert([{}])
+            .select()
+            .single();
+    
+        if (customerError) {
+            throw new Error(`Failed to create customer: ${customerError.message}`);
+        }
+        const customerId = customerData.id;
+    
+        // Create a new identity
+        const hash = createHash("sha256").update(input.externalUserId).digest("hex");
+        const { error: identityError } = await this.client
+            .from('customer_identities')
+            .insert([{
+                customer_id: customerId,
+                type: input.channel,
+                value_hash: hash
+            }]);
+        
+        if (identityError) {
+            // In a real app, you'd want to roll back the customer creation
+            throw new Error(`Failed to create customer identity: ${identityError.message}`);
+        }
+    
+        return customerData as CustomerProfile;
+    }
+
+    async updateCustomerProfile(customerId: string, updates: Partial<CustomerProfile>): Promise<CustomerProfile> {
+        const { data, error } = await this.client
+            .from('customers')
+            .update(updates)
+            .eq('id', customerId)
+            .select()
+            .single();
+    
+        if (error) {
+            throw new Error(`Failed to update customer profile: ${error.message}`);
+        }
+    
+        return data as CustomerProfile;
+    }
+
     async getRecentMessages(input: {
         customerId: string;
         conversationId?: string;

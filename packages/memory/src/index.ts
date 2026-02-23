@@ -11,7 +11,9 @@ import { SupabaseContinuityStore } from "./supabaseStore.js";
 
 export interface ContinuityStore {
     resolveCustomerId(input: { channel: Channel; externalUserId: string }): Promise<string | null>;
+    createCustomerAndIdentity(input: { channel: Channel; externalUserId: string }): Promise<CustomerProfile>;
     getCustomerProfile(customerId: string): Promise<CustomerProfile>;
+    updateCustomerProfile(customerId: string, updates: Partial<CustomerProfile>): Promise<CustomerProfile>;
     getRecentMessages(input: {
         customerId: string;
         conversationId?: string;
@@ -53,14 +55,17 @@ export async function getContext(store: ContinuityStore, input: GetContextInput)
   const summariesLimit = input.limits?.summaries ?? 3;
   const semanticHitsLimit = input.limits?.semanticHits ?? 8;
 
-  const customerId = await store.resolveCustomerId({
+  let customerId = await store.resolveCustomerId({
     channel: input.channel,
     externalUserId: input.externalUserId
   });
 
   if (!customerId) {
-    // In MVP, we fail closed. In production, you'd create a customer + identity mapping here.
-    throw new Error("Unknown customer identity; cannot establish continuity context.");
+    const newCustomer = await store.createCustomerAndIdentity({
+        channel: input.channel,
+        externalUserId: input.externalUserId,
+    });
+    customerId = newCustomer.id;
   }
 
   const [profile, recentMessages, summaries, semanticMemories, openTickets] = await Promise.all([
@@ -79,6 +84,44 @@ export async function getContext(store: ContinuityStore, input: GetContextInput)
     semanticMemories,
     openTickets
   };
+}
+
+type CrmUpsertFunction = (profile: CustomerProfile) => Promise<string>;
+
+export async function resolveVapiIdentity(
+    store: ContinuityStore,
+    upsertContact: CrmUpsertFunction,
+    phoneNumber: string
+): Promise<string> {
+    
+    let customerId = await store.resolveCustomerId({
+        channel: 'voice', 
+        externalUserId: phoneNumber
+    });
+
+    if (customerId) {
+        return customerId;
+    }
+
+    const newCustomer = await store.createCustomerAndIdentity({
+        channel: 'voice',
+        externalUserId: phoneNumber
+    });
+    customerId = newCustomer.id;
+
+    const profile: CustomerProfile = {
+        ...newCustomer,
+        primaryPhone: phoneNumber,
+    };
+
+    try {
+        const crmContactId = await upsertContact(profile);
+        await store.updateCustomerProfile(customerId, { crmContactId });
+    } catch (error) {
+        console.error("Failed to upsert contact to CRM", error);
+    }
+    
+    return customerId;
 }
 
 export { SupabaseContinuityStore };
