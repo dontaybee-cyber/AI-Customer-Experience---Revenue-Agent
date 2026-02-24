@@ -1,12 +1,13 @@
-
+import type { AuditLogger } from '../infra/audit.js';
+import { createAuditLogger } from '../infra/audit.js';
 import type { Message } from "../types.js";
 
 export interface TriggerEngineDeps {
-  log: (msg: string) => void;
+  audit: AuditLogger;
 }
 
 function createDefaultDeps(): TriggerEngineDeps {
-  return { log: (msg) => console.warn(msg) };
+  return { audit: createAuditLogger() };
 }
 
 export class TriggerEngine {
@@ -42,7 +43,18 @@ export class TriggerEngine {
    * @deprecated Mock implementation. Replace with a real LLM call.
    */
   private async detectBuyingSignalsWithLLM(message: Message): Promise<boolean> {
-    this.deps.log(`[MOCK] Using LLM to detect buying signals for message: "${message.content}"`);
+    void this.deps.audit.write({
+      at: new Date().toISOString(),
+      actor: 'agent',
+      action: 'detect_buying_signals_with_llm',
+      resourceType: 'message',
+      resourceId: message.id,
+      details: {
+        customerId: message.identity,
+        messagePreview: message.content.slice(0, 100),
+        mock: true,
+      },
+    });
     // Mock LLM call to check for buying intent.
     // In a real implementation, this would call a language model to classify the message content.
     const buyingIntents = ["upgrade", "team", "enterprise", "feature compatibility"];

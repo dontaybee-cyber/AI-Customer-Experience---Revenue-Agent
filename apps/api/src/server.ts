@@ -4,7 +4,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ConsoleAuditLogger } from "./infra/audit.js";
 import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
-import { Orchestrator } from "./orchestrator.js";
+import { Orchestrator } from "./domain/agent/orchestrator.js";
 import { SupabaseContinuityStore } from "@acx/memory";
 import { HubSpotAdapter } from "@acx/connectors";
 import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors";
@@ -32,10 +32,9 @@ const triggerDeps = {
 };
 
 const orchestrator = new Orchestrator({
-  continuityStore,
-  triggerDeps,
-  llm,
   audit,
+  llm,
+  store: continuityStore,
 });
 
 app.get("/health", async () => ({ ok: true }));
@@ -70,7 +69,7 @@ app.post("/webhooks/:provider", async (req: FastifyRequest, reply: FastifyReply)
     headers: req.headers as Record<string, string>,
   });
 
-  const result = await orchestrator.processEvent(event);
+  const result = await orchestrator.run(event);
 
   // Direct response path for Telegram: send the LLM output back to the chat_id.
   if (event.provider === "telegram") {

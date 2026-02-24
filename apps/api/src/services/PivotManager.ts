@@ -19,7 +19,6 @@ export interface PivotManagerDeps {
   triggerEngine: TriggerEngine;
   telegram: TelegramConnector;
   audit: AuditLogger;
-  log: (msg: string) => void;
 }
 
 // App-level salt — same as orchestrator; keep consistent across modules.
@@ -30,7 +29,6 @@ function createDefaultDeps(): PivotManagerDeps {
     triggerEngine: new TriggerEngine(),
     telegram: TelegramConnector.fromEnv(),
     audit: createAuditLogger(),
-    log: (msg) => console.log(msg),
   };
 }
 
@@ -81,7 +79,17 @@ export class PivotManager {
 
   private transitionTo(newState: AgentState, message: Message) {
     if (this.state !== newState) {
-      this.deps.log(`Transitioning from ${this.state} to ${newState}`);
+      this.deps.audit.write({
+        at: new Date().toISOString(),
+        actor: 'agent',
+        action: 'state_transition',
+        resourceType: 'conversation',
+        resourceId: message.conversationId,
+        details: {
+          fromState: this.state,
+          toState: newState,
+        },
+      });
       this.state = newState;
 
       if (newState === AgentState.SALES_QUALIFY) {
@@ -110,7 +118,16 @@ export class PivotManager {
   private async notifyAdmin(message: Message): Promise<void> {
     const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
     if (!adminChatId) {
-      this.deps.log("TELEGRAM_ADMIN_CHAT_ID not set. Skipping admin notification.");
+      void this.deps.audit.write({
+        at: new Date().toISOString(),
+        actor: 'system',
+        action: 'skip_admin_notification',
+        resourceType: 'conversation',
+        resourceId: message.conversationId,
+        details: {
+          reason: 'TELEGRAM_ADMIN_CHAT_ID not set',
+        },
+      });
       return;
     }
     const identityHash = await hashIdentifier(message.identity, PIVOT_HASH_SALT);
@@ -122,8 +139,13 @@ export class PivotManager {
 
   private pivotPromptAdapter(message: Message): { newSystemPrompt: string } {
     const newSystemPrompt = `Glad we got that fixed! Since you mentioned team scaling, would you like to see how our enterprise plan handles that?`;
-    // In a real implementation, this would update the LLM's system prompt.
-    this.deps.log(`New system prompt generated for conversation: ${message.conversationId}`);
+    this.deps.audit.write({
+      at: new Date().toISOString(),
+      actor: 'agent',
+      action: 'generate_pivot_prompt',
+      resourceType: 'conversation',
+      resourceId: message.conversationId,
+    });
     return { newSystemPrompt };
   }
 }
