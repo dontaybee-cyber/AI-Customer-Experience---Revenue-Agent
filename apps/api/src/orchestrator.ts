@@ -3,10 +3,13 @@ import { getContext } from "@acx/memory";
 import type { MessageRecord, InternalEvent, OrchestratorResult, OpenTicket } from "@acx/shared";
 import type { TriggerEngineDeps } from "@acx/trigger-engine";
 
-import type { AuditLogger } from "./audit.js";
-import { hashIdentifier, redactPII } from "./pii.js";
+import type { AuditLogger } from "./infra/audit.js";
+import { hashIdentifier, redactPII } from "./infra/pii.js";
 import type { LlmClient, LlmMessage } from "./llm.js";
 import { triggerQueue } from "./queue.js";
+
+// App-level salt for audit-log identifier hashing. Non-secret; prevents cross-app rainbow tables.
+const AUDIT_HASH_SALT = process.env.AUDIT_HASH_SALT ?? "acx-audit-v1";
 
 export interface OrchestratorDeps {
   continuityStore: ContinuityStore;
@@ -28,7 +31,7 @@ export class Orchestrator {
    */
   async processEvent(event: InternalEvent): Promise<OrchestratorResult> {
     const at = new Date().toISOString();
-    const externalIdHash = hashIdentifier(event.customerExternalId);
+    const externalIdHash = await hashIdentifier(event.customerExternalId, AUDIT_HASH_SALT);
 
     await this.deps.audit.write({
       at,

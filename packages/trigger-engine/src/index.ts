@@ -1,4 +1,4 @@
-import type { Channel, MessageRecord, InternalEvent, CRMAdapter, TriggerAction } from "../../shared/src/index.js";
+import type { Channel, MessageRecord, InternalEvent, CRMAdapter, TriggerAction } from "@acx/shared";
 
 export type InternalEventType =
   | "message.received"

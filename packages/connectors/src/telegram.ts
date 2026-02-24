@@ -30,6 +30,14 @@ export function escapeMarkdownV2(text: string): string {
   return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
 }
 
+interface SendMessageBody {
+  chat_id: string | number;
+  text: string;
+  parse_mode: "MarkdownV2" | "HTML";
+  disable_web_page_preview: boolean;
+  reply_markup?: TelegramInlineKeyboardMarkup;
+}
+
 export class TelegramConnector {
   constructor(
     private readonly config: {
@@ -56,7 +64,7 @@ export class TelegramConnector {
   }): Promise<TelegramSendMessageResponse> {
     const url = `https://api.telegram.org/bot${this.config.botToken}/sendMessage`;
 
-    const body: any = {
+    const body: SendMessageBody = {
       chat_id: input.chatId,
       text: input.text,
       parse_mode: input.parseMode ?? "MarkdownV2",
@@ -82,56 +90,29 @@ export class TelegramConnector {
   }
 
   /**
-   * Sends an admin alert to TELEGRAM_ADMIN_CHAT_ID.
-   * Includes inline action buttons:
-   * - View Context
-   * - Escalate to Human
-   * - Approve Sales Pivot
+   * Executive Standard: Strict Typing for Admin Alerts
    */
-  async sendAdminAlert(input: {
+  async sendAdminAlert(data: {
     customerId: string;
-    customerName?: string;
+    customerName: string;
     churnRisk: number;
-    sentimentEma?: number;
-    channel?: string;
-    textPreviewRedacted?: string;
-    viewContextUrl?: string;
-  }): Promise<TelegramSendMessageResponse> {
-    if (!this.config.adminChatId) {
-      return { ok: false, description: "Missing TELEGRAM_ADMIN_CHAT_ID" };
-    }
+    sentimentEma: number;
+    channel: string;
+    textPreviewRedacted: string;
+  }): Promise<void> {
+    const message = `
+⚠️ *Escalation Alert*
+*Customer:* ${escapeMarkdownV2(data.customerName)} (${escapeMarkdownV2(data.customerId)})
+*Channel:* ${escapeMarkdownV2(data.channel)}
+*Churn Risk:* ${(data.churnRisk * 100).toFixed(1)}%
+*Sentiment:* ${data.sentimentEma.toFixed(2)}
+*Preview:* _${escapeMarkdownV2(data.textPreviewRedacted)}_
+    `.trim();
 
-    const name = input.customerName ? escapeMarkdownV2(input.customerName) : "Unknown";
-    const customerId = escapeMarkdownV2(input.customerId);
-
-    const lines = [
-      "*Admin Alert*",
-      `Customer: ${name} \\(${customerId}\\)`,
-      `churn\\_risk: ${input.churnRisk.toFixed(2)}`,
-      input.sentimentEma !== undefined ? `sentiment\\_ema: ${input.sentimentEma.toFixed(2)}` : undefined,
-      input.channel ? `channel: ${escapeMarkdownV2(input.channel)}` : undefined,
-      input.textPreviewRedacted ? `text: ${escapeMarkdownV2(input.textPreviewRedacted)}` : undefined
-    ].filter(Boolean) as string[];
-
-    const replyMarkup: TelegramInlineKeyboardMarkup = {
-      inline_keyboard: [
-        [
-          input.viewContextUrl
-            ? { text: "View Context", url: input.viewContextUrl }
-            : { text: "View Context", callback_data: `context:${input.customerId}` }
-        ],
-        [
-          { text: "Escalate to Human", callback_data: `escalate:${input.customerId}` },
-          { text: "Approve Sales Pivot", callback_data: `pivot:${input.customerId}` }
-        ]
-      ]
-    };
-
-    return this.sendMessage({
-      chatId: this.config.adminChatId,
-      parseMode: "MarkdownV2",
-      text: lines.join("\n"),
-      replyMarkup
+    await this.sendMessage({
+      chatId: process.env.TELEGRAM_ADMIN_CHAT_ID || "",
+      text: message,
+      parseMode: "MarkdownV2"
     });
   }
 }

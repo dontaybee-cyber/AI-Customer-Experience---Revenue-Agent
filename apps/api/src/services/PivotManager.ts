@@ -1,8 +1,11 @@
 
+import type { AuditLogger } from "../infra/audit.js";
+import { createAuditLogger } from "../infra/audit.js";
+import { redactPII, hashIdentifier } from "../infra/pii.js";
 import { TriggerEngine } from "./TriggerEngine.js";
 import type { Message } from "../types.js";
 import { TelegramConnector } from "@acx/connectors";
-import { ConsoleAuditLogger, type AuditEvent } from "../audit.js";
+import { type AuditEvent } from "../infra/audit.js";
 
 export enum AgentState {
   SUPPORT_TRIAGE = 'SUPPORT_TRIAGE',
@@ -12,17 +15,30 @@ export enum AgentState {
   SALES_HANDOFF = 'SALES_HANDOFF',
 }
 
-export class PivotManager {
-  private triggerEngine: TriggerEngine;
-  private state: AgentState;
-  private telegramConnector: TelegramConnector;
-  private auditLogger: ConsoleAuditLogger;
+export interface PivotManagerDeps {
+  triggerEngine: TriggerEngine;
+  telegram: TelegramConnector;
+  audit: AuditLogger;
+  log: (msg: string) => void;
+}
 
-  constructor() {
-    this.triggerEngine = new TriggerEngine();
+// App-level salt — same as orchestrator; keep consistent across modules.
+const PIVOT_HASH_SALT = process.env.AUDIT_HASH_SALT ?? "acx-audit-v1";
+
+function createDefaultDeps(): PivotManagerDeps {
+  return {
+    triggerEngine: new TriggerEngine(),
+    telegram: TelegramConnector.fromEnv(),
+    audit: createAuditLogger(),
+    log: (msg) => console.log(msg),
+  };
+}
+
+export class PivotManager {
+  private state: AgentState;
+
+  constructor(private deps: PivotManagerDeps = createDefaultDeps()) {
     this.state = AgentState.SUPPORT_TRIAGE;
-    this.telegramConnector = TelegramConnector.fromEnv();
-    this.auditLogger = new ConsoleAuditLogger();
   }
 
   public getState(): AgentState {
@@ -34,7 +50,7 @@ export class PivotManager {
     resolutionScore: number,
     sentimentEma: number
   ) {
-    const buyingSignalDetected = await this.triggerEngine.detectBuyingSignals(
+    const buyingSignalDetected = await this.deps.triggerEngine.detectBuyingSignals(
       message
     );
 
@@ -65,12 +81,12 @@ export class PivotManager {
 
   private transitionTo(newState: AgentState, message: Message) {
     if (this.state !== newState) {
-      console.log(`Transitioning from ${this.state} to ${newState}`);
+      this.deps.log(`Transitioning from ${this.state} to ${newState}`);
       this.state = newState;
 
       if (newState === AgentState.SALES_QUALIFY) {
         this.logPivotEvent(message);
-        this.notifyAdmin(message);
+        void this.notifyAdmin(message);
         this.pivotPromptAdapter(message);
       }
     }
@@ -88,25 +104,26 @@ export class PivotManager {
         messageId: message.id,
       },
     };
-    this.auditLogger.write(event);
+    this.deps.audit.write(event);
   }
 
-  private notifyAdmin(message: Message) {
+  private async notifyAdmin(message: Message): Promise<void> {
     const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
-    if (adminChatId) {
-      this.telegramConnector.sendMessage({
-        chatId: adminChatId,
-        text: `Pivot to sales occurred for identity: ${message.identity}`,
-      });
-    } else {
-      console.log('TELEGRAM_ADMIN_CHAT_ID not set. Skipping notification.');
+    if (!adminChatId) {
+      this.deps.log("TELEGRAM_ADMIN_CHAT_ID not set. Skipping admin notification.");
+      return;
     }
+    const identityHash = await hashIdentifier(message.identity, PIVOT_HASH_SALT);
+    await this.deps.telegram.sendMessage({
+      chatId: adminChatId,
+      text: `Pivot to sales for identity hash: ${identityHash}`,
+    });
   }
 
   private pivotPromptAdapter(message: Message): { newSystemPrompt: string } {
     const newSystemPrompt = `Glad we got that fixed! Since you mentioned team scaling, would you like to see how our enterprise plan handles that?`;
     // In a real implementation, this would update the LLM's system prompt.
-    console.log(`New system prompt: "${newSystemPrompt}"`);
+    this.deps.log(`New system prompt generated for conversation: ${message.conversationId}`);
     return { newSystemPrompt };
   }
 }

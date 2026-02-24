@@ -1,4 +1,5 @@
 import { Client } from '@hubspot/api-client';
+import { FilterOperatorEnum } from "@hubspot/api-client/lib/codegen/crm/contacts/models/Filter.js";
 import { 
   CRMAdapter, 
   CustomerProfile, 
@@ -9,7 +10,7 @@ import {
  * HubSpot CRM Adapter
  * - Authenticates via Private App Access Token
  * - Handles Contact Upsert, Ticket Creation, and Deal Generation for Sales Pivots
- * - Optimized for async execution to protect the &lt;2s response path
+ * - Optimized for async execution to protect the <2s response path
  */
 export class HubSpotAdapter implements CRMAdapter {
   private client: Client;
@@ -36,7 +37,7 @@ export class HubSpotAdapter implements CRMAdapter {
       if (profile.primaryEmail) {
         const searchResponse = await this.client.crm.contacts.searchApi.doSearch({
           filterGroups: [{
-            filters: [{ propertyName: 'email', operator: 'EQ' as any, value: profile.primaryEmail }]
+            filters: [{ propertyName: 'email', operator: FilterOperatorEnum.Eq, value: profile.primaryEmail }]
           }],
           limit: 1,
           properties: ['id'],

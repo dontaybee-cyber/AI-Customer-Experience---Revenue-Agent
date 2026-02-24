@@ -1,9 +1,9 @@
-import { ContinuityContext, VapiResponse } from "@acx/shared";
+import { ContinuityContext, VapiResponse, MemorySummary, MessageRecord } from '../../shared/src/index.js';
 
 function hasSalesState(context: ContinuityContext): boolean {
     // If a summary contains "sales", "enterprise plan", "pricing", etc., we can infer a sales state.
     const salesKeywords = ['sales', 'enterprise plan', 'pricing', 'quote', 'demo'];
-    return context.summaries.some(s =>
+    return context.summaries.some((s: MemorySummary) =>
         salesKeywords.some(keyword => s.summaryText.toLowerCase().includes(keyword))
     );
 }
@@ -24,8 +24,8 @@ export class VapiConnector {
 
         const isSalesState = hasSalesState(context);
 
-        const recentHistory = context.recentMessages.map(m => `${m.direction === 'in' ? 'Customer' : 'Agent'}: ${m.contentRedacted}`).join('\n');
-        const summaries = context.summaries.map(s => `- ${s.summaryText}`).join('\n');
+        const recentHistory = context.recentMessages.map((m: MessageRecord) => `${m.direction === 'in' ? 'Customer' : 'Agent'}: ${m.contentRedacted}`).join('\n');
+        const summaries = context.summaries.map((s: MemorySummary) => `- ${s.summaryText}`).join('\n');
 
         const systemPrompt = `
 You are a helpful AI assistant. Your goal is to provide a seamless voice experience.

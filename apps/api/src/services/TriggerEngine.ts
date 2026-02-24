@@ -1,10 +1,18 @@
 
 import type { Message } from "../types.js";
 
+export interface TriggerEngineDeps {
+  log: (msg: string) => void;
+}
+
+function createDefaultDeps(): TriggerEngineDeps {
+  return { log: (msg) => console.warn(msg) };
+}
+
 export class TriggerEngine {
   private buyingSignalKeywords: RegExp[];
 
-  constructor() {
+  constructor(private deps: TriggerEngineDeps = createDefaultDeps()) {
     this.buyingSignalKeywords = [
       /how much does this cost/i,
       /pricing/i,
@@ -34,7 +42,7 @@ export class TriggerEngine {
    * @deprecated Mock implementation. Replace with a real LLM call.
    */
   private async detectBuyingSignalsWithLLM(message: Message): Promise<boolean> {
-    console.warn(`[MOCK] Using LLM to detect buying signals for message: "${message.content}"`);
+    this.deps.log(`[MOCK] Using LLM to detect buying signals for message: "${message.content}"`);
     // Mock LLM call to check for buying intent.
     // In a real implementation, this would call a language model to classify the message content.
     const buyingIntents = ["upgrade", "team", "enterprise", "feature compatibility"];

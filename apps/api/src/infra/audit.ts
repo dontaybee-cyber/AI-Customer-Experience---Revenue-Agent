@@ -1,9 +1,3 @@
-/**
- * SOC2-oriented audit logging (MVP)
- * - Avoid logging raw PII. Log hashed identifiers and redacted text only.
- * - In production: write to append-only store (DB table, SIEM) with retention policies.
- */
-
 export type AuditActor = "system" | "agent" | "human";
 
 export interface AuditEvent {
@@ -24,4 +18,11 @@ export class ConsoleAuditLogger implements AuditLogger {
     // eslint-disable-next-line no-console
     console.log(JSON.stringify({ audit: event }));
   }
+}
+
+/**
+ * Factory for Dependency Injection
+ */
+export function createAuditLogger(): AuditLogger {
+  return new ConsoleAuditLogger();
 }

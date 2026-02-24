@@ -11,6 +11,9 @@
       "default": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "@acx/shared": "workspace:*"
+  },
   "scripts": {
     "dev": "tsc -w -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
