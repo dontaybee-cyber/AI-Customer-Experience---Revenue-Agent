@@ -1,8 +1,8 @@
 import { Job, Worker } from "bullmq";
 import type { InternalEvent, MessageRecord } from "@acx/shared";
 
-import { ConsoleAuditLogger } from "./audit.js";
-import { triggerQueue } from "./queue.js";
+import { ConsoleAuditLogger } from "./infra/audit.js";
+import { triggerQueue, QUEUE_CONNECTION } from "./queue.js";
 import { evaluateTriggers } from "@acx/trigger-engine";
 import { SupabaseContinuityStore } from "@acx/memory";
 import { TelegramConnector } from "@acx/connectors";
@@ -96,7 +96,7 @@ const worker = new Worker(
     return result;
   },
   {
-    connection: (triggerQueue as any).opts.connection,
+    connection: QUEUE_CONNECTION,
   }
 );
 

@@ -1,6 +1,7 @@
+import type { Provider, TelegramMetadata } from "@acx/shared";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 
-import { ConsoleAuditLogger } from "./audit.js";
+import { ConsoleAuditLogger } from "./infra/audit.js";
 import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
 import { Orchestrator } from "./orchestrator.js";
@@ -9,8 +10,12 @@ import { HubSpotAdapter } from "@acx/connectors";
 import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors";
 import voiceRoutes from "./routes/voice.js";
 
+// Max webhook body: 64 KB — rejects oversized payloads early to prevent memory exhaustion.
+const MAX_WEBHOOK_BODY_BYTES = 64 * 1024;
+
 const app = Fastify({
   logger: true,
+  bodyLimit: MAX_WEBHOOK_BODY_BYTES,
 });
 
 // Register the voice routes
@@ -44,14 +49,25 @@ app.get("/health", async () => ({ ok: true }));
  *
  * Each normalizes payload -> InternalEvent -> orchestrator.processEvent()
  */
+interface WebhookParams {
+  provider: string;
+}
+
+// ...
+
 app.post("/webhooks/:provider", async (req: FastifyRequest, reply: FastifyReply) => {
-  const provider = req.params as any;
+  const { provider: rawProvider } = req.params as WebhookParams;
   const payload = req.body as unknown;
 
+  const SUPPORTED_PROVIDERS: Provider[] = ["twilio", "vapi", "webchat", "telegram"];
+  if (!SUPPORTED_PROVIDERS.includes(rawProvider as Provider)) {
+    return reply.status(400).send({ error: `Unsupported provider: ${rawProvider}` });
+  }
+
   const event = normalizeEvent({
-    provider: provider.provider,
+    provider: rawProvider as Provider,
     payload,
-    headers: req.headers as any
+    headers: req.headers as Record<string, string>,
   });
 
   const result = await orchestrator.processEvent(event);
@@ -59,7 +75,7 @@ app.post("/webhooks/:provider", async (req: FastifyRequest, reply: FastifyReply)
   // Direct response path for Telegram: send the LLM output back to the chat_id.
   if (event.provider === "telegram") {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = (event.metadata as any)?.telegram?.chat_id;
+    const chatId = (event.metadata as { telegram: TelegramMetadata })?.telegram?.chat_id;
 
     if (botToken && chatId && result.responseText) {
       const tg = new TelegramConnector({ botToken });

@@ -1,5 +1,5 @@
 import type { Channel, InternalEvent, Provider } from "@acx/shared";
-import { redactPII } from "./pii.js";
+import { redactPII } from "./infra/pii.js";
 
 function isoNow() {
   return new Date().toISOString();
@@ -15,11 +15,17 @@ function requiredString(v: unknown, field: string): string {
   return s;
 }
 
-function inferChannelFromTwilio(payload: any): Channel {
+function inferChannelFromTwilio(payload: Record<string, unknown>): Channel {
   // Twilio SMS webhook typically includes SmsMessageSid; Voice includes CallSid.
   if (payload?.SmsMessageSid || payload?.MessageSid) return "sms";
   if (payload?.CallSid) return "voice";
   return "sms";
+}
+
+function asRecord(v: unknown): Record<string, unknown> | undefined {
+  return v !== null && typeof v === "object" && !Array.isArray(v)
+    ? (v as Record<string, unknown>)
+    : undefined;
 }
 
 /**
@@ -30,7 +36,7 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
   const { provider } = input;
 
   if (provider === "twilio") {
-    const p: any = input.payload ?? {};
+    const p: Record<string, unknown> = input.payload as Record<string, unknown> ?? {};
     const channel = inferChannelFromTwilio(p);
 
     const from = requiredString(p.From, "From"); // phone
@@ -56,14 +62,14 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
 
   if (provider === "vapi") {
     // Vapi event shapes vary; we normalize the common fields.
-    const p: any = input.payload ?? {};
+    const p: Record<string, unknown> = input.payload as Record<string, unknown> ?? {};
     const id = asString(p.id) ?? asString(p.eventId) ?? `vapi_${Date.now()}`;
     const occurredAt = asString(p.timestamp) ?? isoNow();
 
     // Attempt to locate a stable external user id (phone/email) if present.
     const customerExternalId =
-      asString(p.customer?.phone) ??
-      asString(p.customer?.email) ??
+      asString(asRecord(p.customer)?.phone) ??
+      asString(asRecord(p.customer)?.email) ??
       asString(p.phoneNumber) ??
       asString(p.from) ??
       "unknown";
@@ -87,7 +93,7 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
   }
 
   if (provider === "webchat") {
-    const p: any = input.payload ?? {};
+    const p: Record<string, unknown> = input.payload as Record<string, unknown> ?? {};
     const id = asString(p.id) ?? `web_${Date.now()}`;
     const occurredAt = asString(p.occurredAt) ?? isoNow();
 
@@ -115,18 +121,20 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
     // - message.text
     // - message.from.id (user_id)
     // - message.chat.id (chat_id)
-    const p: any = input.payload ?? {};
-    const msg: any = p.message ?? p.edited_message ?? p.channel_post ?? p.edited_channel_post;
+    const p: Record<string, unknown> = (input.payload as Record<string, unknown>) ?? {};
+    const msg = asRecord(p.message ?? p.edited_message ?? p.channel_post ?? p.edited_channel_post);
     if (!msg) throw new Error("Telegram payload missing message");
 
     const text = asString(msg.text) ?? asString(msg.caption) ?? "";
-    const fromId = msg.from?.id;
-    const chatId = msg.chat?.id;
+    const fromRec = asRecord(msg?.from);
+    const chatRec = asRecord(msg?.chat);
+    const fromId = fromRec?.id;
+    const chatId = chatRec?.id;
 
     if (fromId === undefined || fromId === null) throw new Error("Telegram payload missing message.from.id");
     if (chatId === undefined || chatId === null) throw new Error("Telegram payload missing message.chat.id");
 
-    const id = asString(msg.message_id?.toString?.()) ?? `tg_${Date.now()}`;
+    const id = asString(String(msg.message_id ?? "")) || `tg_${Date.now()}`;
 
     return {
       id,
@@ -142,9 +150,9 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
         telegram: {
           user_id: fromId,
           chat_id: chatId,
-          username: asString(msg.from?.username),
-          first_name: asString(msg.from?.first_name),
-          last_name: asString(msg.from?.last_name)
+          username: asString(fromRec?.username),
+          first_name: asString(fromRec?.first_name),
+          last_name: asString(fromRec?.last_name)
         }
       }
     };

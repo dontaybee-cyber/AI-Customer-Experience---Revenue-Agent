@@ -20,10 +20,11 @@ const voiceRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
             }
 
             const context = await getContext(store, {
-                channel: 'voice',
+                channel: "voice",
                 externalUserId: customerNumber,
-                userText: '',
-            });
+                userText: "",
+                limits: { recentMessages: 20, semanticHits: 8, summaries: 3 },
+              });
 
             const assistantResponse = vapiConnector.formatAssistantResponse(context);
             reply.send(assistantResponse);
@@ -48,7 +49,10 @@ const voiceRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         try {
             const payload = req.body as VapiEndReport;
             const { summary, transcript, recordingUrl } = payload.message;
-            const customerNumber = "unknown";
+            const customerNumber: string =
+              typeof payload.message?.customer?.number === "string"
+                ? payload.message.customer.number
+                : "unknown";
 
             const activity = `
                 Call Summary: ${summary}

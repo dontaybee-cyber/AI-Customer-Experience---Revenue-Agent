@@ -95,6 +95,7 @@ export interface VapiEndReportMessage {
       summary: string;
       transcript: string;
       recordingUrl: string;
+      customer?: VapiCustomer;
       // other props
 }
   
@@ -118,6 +119,14 @@ export interface VapiResponse {
     };
 }
 
+export interface TelegramMetadata {
+  chat_id: number;
+  user_id: number;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
 export type InternalEventType =
   | "message.received"
   | "message.sent"
@@ -134,7 +143,7 @@ export interface InternalEvent {
   customerExternalId: string; // phone/email/web id (raw at runtime; do not persist unmasked)
   conversationExternalId?: string;
   text?: string; // redacted text preferred
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | { telegram: TelegramMetadata };
 }
 
 export interface CRMAdapter {
