@@ -168,6 +168,11 @@ export interface OrchestratorResult {
     triggerActions: TriggerAction[];
 }
 
+export interface PivotResult {
+  didPivot: boolean;
+  newSystemPrompt?: string;
+}
+
 export interface ContinuityStore {
     resolveCustomerId(input: { channel: Channel; externalUserId: string }): Promise<string | null>;
     createCustomerAndIdentity(input: { channel: Channel; externalUserId: string }): Promise<CustomerProfile>;

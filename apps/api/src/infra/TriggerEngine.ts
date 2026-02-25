@@ -37,13 +37,19 @@ export class TriggerEngine {
   }
 
   /**
-   * @deprecated — mock implementation, replace with real LLM call
+   * @deprecated mock implementation, replace with real LLM call
    */
   private async detectBuyingSignalsWithLLM(message: { content: string }): Promise<boolean> {
     this.deps.log(`[MOCK] Using LLM to detect buying signals for message: "${message.content}"`);
     const lowerCaseContent = message.content.toLowerCase();
-    const mockKeywords = ["upgrade", "team", "enterprise", "feature compatibility"];
+    const llmKeywords = ["upgrade", "team", "enterprise", "feature compatibility"];
 
-    return mockKeywords.some(keyword => lowerCaseContent.includes(keyword));
+    for (const keyword of llmKeywords) {
+      if (lowerCaseContent.includes(keyword)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

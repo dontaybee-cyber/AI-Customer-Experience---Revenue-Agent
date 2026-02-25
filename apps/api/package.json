@@ -7,7 +7,13 @@
     "dev": "node --watch --enable-source-maps dist/server.js",
     "dev:worker": "node --watch --enable-source-maps dist/worker.js",
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check": "pnpm run lint && pnpm run format:check",
+    "lint": "oxlint src",
+    "format:check": "echo \"format check skipped - oxfmt not available\"",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:live": "LIVE=1 vitest run"
   },
   "dependencies": {
     "@acx/connectors": "workspace:*",
@@ -16,5 +22,9 @@
     "@acx/trigger-engine": "workspace:*",
     "bullmq": "^5.70.1",
     "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
+    "vitest": "^4.0.18"
   }
 }

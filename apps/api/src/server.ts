@@ -6,7 +6,6 @@ import { normalizeEvent } from "./normalizeEvent.js";
 import { StubLlmClient } from "./llm.js";
 import { Orchestrator } from "./domain/agent/orchestrator.js";
 import { SupabaseContinuityStore } from "@acx/memory";
-import { HubSpotAdapter } from "@acx/connectors";
 import { TelegramConnector, escapeMarkdownV2 } from "@acx/connectors";
 import voiceRoutes from "./routes/voice.js";
 
@@ -24,12 +23,6 @@ app.register(voiceRoutes);
 const audit = new ConsoleAuditLogger();
 const llm = new StubLlmClient();
 const continuityStore = new SupabaseContinuityStore();
-const crmAdapter = new HubSpotAdapter(process.env.HUBSPOT_ACCESS_TOKEN || "");
-
-const triggerDeps = {
-  store: continuityStore,
-  crm: crmAdapter,
-};
 
 const orchestrator = new Orchestrator({
   audit,

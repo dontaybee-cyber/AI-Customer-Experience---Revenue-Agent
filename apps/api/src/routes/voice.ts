@@ -1,13 +1,12 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { getContext, SupabaseContinuityStore } from '@acx/memory';
-import { HubSpotAdapter, VapiConnector } from '@acx/connectors';
+import { VapiConnector } from '@acx/connectors';
 import type { VapiRequest, VapiEndReport } from '@acx/shared';
 
 const voiceRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
 
     const store = new SupabaseContinuityStore();
     const vapiConnector = new VapiConnector();
-    const hubspotAdapter = new HubSpotAdapter(process.env.HUBSPOT_ACCESS_TOKEN || '');
 
     // Handle Vapi's 'assistant-request' webhook
     fastify.post('/voice/vapi-request', async (req, reply) => {

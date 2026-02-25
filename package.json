@@ -11,13 +11,16 @@
     "dev": "pnpm --filter @acx/api dev",
     "build": "pnpm -r build",
     "start": "pnpm --filter @acx/api start",
-    "lint": "pnpm -r lint",
+    "check": "pnpm -r check",
+    "lint": "oxlint src",
+    "format:check": "oxfmt --check .",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
     "@typescript/native-preview": "7.0.0-dev.20260224.1",
+    "oxlint": "^1.50.0",
     "typescript": "^5.9.3"
   }
 }

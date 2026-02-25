@@ -1,7 +1,7 @@
 
 import type { AuditLogger } from "../infra/audit.js";
 import { createAuditLogger } from "../infra/audit.js";
-import { redactPII, hashIdentifier } from "../infra/pii.js";
+import { hashIdentifier } from "../infra/pii.js";
 import { TriggerEngine } from "./TriggerEngine.js";
 import type { Message } from "../types.js";
 import { TelegramConnector } from "@acx/connectors";
