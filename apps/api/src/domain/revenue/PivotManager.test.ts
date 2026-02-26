@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
-import { PivotManager, AgentState } from "./PivotManager.js";
-import type { PivotManagerDeps } from "./PivotManager.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { AgentState as AgentStateType, PivotManagerDeps } from "./PivotManager.js";
+
+let PivotManager: typeof import("./PivotManager.js").PivotManager;
+let AgentState: typeof import("./PivotManager.js").AgentState;
 
 const sampleMessage = {
   id: "msg_001",
@@ -21,6 +23,20 @@ function makeDeps(overrides: Partial<PivotManagerDeps> = {}): PivotManagerDeps {
   } as unknown as PivotManagerDeps;
 }
 
+vi.mock("@acx/connectors", () => ({
+  TelegramConnector: class TelegramConnector {
+    static fromEnv() {
+      return new TelegramConnector();
+    }
+    sendMessage = vi.fn().mockResolvedValue(undefined);
+  },
+}));
+
+beforeEach(async () => {
+  vi.resetModules();
+  ({ PivotManager, AgentState } = await import("./PivotManager.js"));
+});
+
 describe("PivotManager", () => {
   it("initial state is SUPPORT_TRIAGE", () => {
     const pm = new PivotManager(makeDeps());
@@ -37,7 +53,7 @@ describe("PivotManager", () => {
     const deps = makeDeps();
     const pm = new PivotManager(deps);
     // Manually set state to SUPPORT_ACTIVE
-    (pm as unknown as { state: AgentState }).state = AgentState.SUPPORT_ACTIVE;
+    (pm as unknown as { state: AgentStateType }).state = AgentState.SUPPORT_ACTIVE;
     await pm.handleMessage(sampleMessage, 0.95, -0.1);
     expect(pm.getState()).toBe(AgentState.RESOLVED);
   });
@@ -67,7 +83,7 @@ describe("PivotManager", () => {
     const pm = new PivotManager(deps);
     await pm.handleMessage(sampleMessage, 0.95, 0.5);
     expect(deps.audit.write).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "pivot_to_sales" })
+      expect.objectContaining({ action: "pivot_to_sales" }),
     );
   });
 
@@ -84,7 +100,7 @@ describe("PivotManager", () => {
       expect.objectContaining({
         chatId: "admin_chat_123",
         text: expect.not.stringContaining("+15551234567"),
-      })
+      }),
     );
     delete process.env.TELEGRAM_ADMIN_CHAT_ID;
   });
@@ -98,7 +114,7 @@ describe("PivotManager", () => {
     await pm.handleMessage(sampleMessage, 0.95, 0.5);
     await new Promise((r) => setTimeout(r, 50));
     expect(deps.log).toHaveBeenCalledWith(
-      expect.stringContaining("TELEGRAM_ADMIN_CHAT_ID not set")
+      expect.stringContaining("TELEGRAM_ADMIN_CHAT_ID not set"),
     );
   });
 });

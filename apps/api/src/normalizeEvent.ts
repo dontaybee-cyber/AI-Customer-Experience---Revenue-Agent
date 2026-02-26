@@ -32,17 +32,25 @@ function asRecord(v: unknown): Record<string, unknown> | undefined {
  * Normalize inbound provider payloads into a unified InternalEvent schema.
  * This is the only place that should know provider-specific shapes.
  */
-export function normalizeEvent(input: { provider: Provider; payload: unknown; headers?: Record<string, string | string[] | undefined> }): InternalEvent {
+export function normalizeEvent(input: {
+  provider: Provider;
+  payload: unknown;
+  headers?: Record<string, string | string[] | undefined>;
+}): InternalEvent {
   const { provider } = input;
 
   if (provider === "twilio") {
-    const p: Record<string, unknown> = input.payload as Record<string, unknown> ?? {};
+    const p: Record<string, unknown> = (input.payload as Record<string, unknown>) ?? {};
     const channel = inferChannelFromTwilio(p);
 
     const from = requiredString(p.From, "From"); // phone
     const body = asString(p.Body) ?? asString(p.SpeechResult) ?? "";
 
-    const id = asString(p.SmsMessageSid) ?? asString(p.MessageSid) ?? asString(p.CallSid) ?? `twilio_${Date.now()}`;
+    const id =
+      asString(p.SmsMessageSid) ??
+      asString(p.MessageSid) ??
+      asString(p.CallSid) ??
+      `twilio_${Date.now()}`;
 
     return {
       id,
@@ -55,14 +63,14 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
       text: body ? redactPII(body) : undefined,
       metadata: {
         to: asString(p.To),
-        accountSid: asString(p.AccountSid)
-      }
+        accountSid: asString(p.AccountSid),
+      },
     };
   }
 
   if (provider === "vapi") {
     // Vapi event shapes vary; we normalize the common fields.
-    const p: Record<string, unknown> = input.payload as Record<string, unknown> ?? {};
+    const p: Record<string, unknown> = (input.payload as Record<string, unknown>) ?? {};
     const id = asString(p.id) ?? asString(p.eventId) ?? `vapi_${Date.now()}`;
     const occurredAt = asString(p.timestamp) ?? isoNow();
 
@@ -87,13 +95,13 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
       text: transcript ? redactPII(transcript) : undefined,
       metadata: {
         rawType: asString(p.type),
-        assistantId: asString(p.assistantId)
-      }
+        assistantId: asString(p.assistantId),
+      },
     };
   }
 
   if (provider === "webchat") {
-    const p: Record<string, unknown> = input.payload as Record<string, unknown> ?? {};
+    const p: Record<string, unknown> = (input.payload as Record<string, unknown>) ?? {};
     const id = asString(p.id) ?? `web_${Date.now()}`;
     const occurredAt = asString(p.occurredAt) ?? isoNow();
 
@@ -111,8 +119,8 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
       text: redactPII(text),
       metadata: {
         pageUrl: asString(p.pageUrl),
-        userAgent: asString(p.userAgent)
-      }
+        userAgent: asString(p.userAgent),
+      },
     };
   }
 
@@ -131,8 +139,10 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
     const fromId = fromRec?.id;
     const chatId = chatRec?.id;
 
-    if (fromId === undefined || fromId === null) throw new Error("Telegram payload missing message.from.id");
-    if (chatId === undefined || chatId === null) throw new Error("Telegram payload missing message.chat.id");
+    if (fromId === undefined || fromId === null)
+      throw new Error("Telegram payload missing message.from.id");
+    if (chatId === undefined || chatId === null)
+      throw new Error("Telegram payload missing message.chat.id");
 
     const id = asString(String(msg.message_id ?? "")) || `tg_${Date.now()}`;
 
@@ -152,9 +162,9 @@ export function normalizeEvent(input: { provider: Provider; payload: unknown; he
           chat_id: chatId,
           username: asString(fromRec?.username),
           first_name: asString(fromRec?.first_name),
-          last_name: asString(fromRec?.last_name)
-        }
-      }
+          last_name: asString(fromRec?.last_name),
+        },
+      },
     };
   }
 

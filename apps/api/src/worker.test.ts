@@ -54,7 +54,10 @@ const memoryMocks = vi.hoisted(() => {
 });
 
 const connectorMocks = vi.hoisted(() => {
-  const telegramInstances: Array<{ sendAdminAlert: ReturnType<typeof vi.fn>; opts: { botToken: string } }> = [];
+  const telegramInstances: Array<{
+    sendAdminAlert: ReturnType<typeof vi.fn>;
+    opts: { botToken: string };
+  }> = [];
   const hubspotInstances: Array<{
     upsertContact: ReturnType<typeof vi.fn>;
     createDeal: ReturnType<typeof vi.fn>;
@@ -145,7 +148,7 @@ describe("worker", () => {
     await import("./worker.js");
     const worker = workerMocks.workers[0];
     const result = await worker.processor(
-      makeJob("noop", { customerId: "cust_1", event: {}, recentMessages: [] })
+      makeJob("noop", { customerId: "cust_1", event: {}, recentMessages: [] }),
     );
 
     expect(result).toBeUndefined();
@@ -155,11 +158,7 @@ describe("worker", () => {
   it("processes evaluate_triggers and dispatches actions", async () => {
     triggerMocks.evaluateTriggers.mockResolvedValue({
       signals: { churnRisk: 0.2, sentimentEma: 0.7 },
-      actions: [
-        { type: "admin_alert" },
-        { type: "crm_sync" },
-        { type: "pivot_to_sales" },
-      ],
+      actions: [{ type: "admin_alert" }, { type: "crm_sync" }, { type: "pivot_to_sales" }],
     });
 
     process.env.TELEGRAM_BOT_TOKEN = "bot_token";
@@ -172,17 +171,19 @@ describe("worker", () => {
         customerId: "cust_1",
         event: { channel: "web", text: "hi" },
         recentMessages: [],
-      })
+      }),
     );
 
     expect(result).toEqual(
-      expect.objectContaining({ actions: expect.any(Array), signals: expect.any(Object) })
+      expect.objectContaining({ actions: expect.any(Array), signals: expect.any(Object) }),
     );
     expect(connectorMocks.telegramInstances[0]?.sendAdminAlert).toHaveBeenCalled();
     expect(connectorMocks.hubspotInstances[0]?.upsertContact).toHaveBeenCalled();
     expect(connectorMocks.hubspotInstances[0]?.createDeal).toHaveBeenCalled();
     expect(memoryMocks.storeInstances[0]?.getCustomerProfile).toHaveBeenCalledWith("cust_1");
-    expect(auditMocks.writes.some((e) => (e as { action?: string }).action === "trigger_job_processed")).toBe(true);
+    expect(
+      auditMocks.writes.some((e) => (e as { action?: string }).action === "trigger_job_processed"),
+    ).toBe(true);
 
     delete process.env.TELEGRAM_BOT_TOKEN;
     delete process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -196,6 +197,8 @@ describe("worker", () => {
     const handler = worker.handlers.failed;
     await handler?.({ id: "job_2" }, err);
 
-    expect(auditMocks.writes.some((e) => (e as { action?: string }).action === "trigger_job_failed")).toBe(true);
+    expect(
+      auditMocks.writes.some((e) => (e as { action?: string }).action === "trigger_job_failed"),
+    ).toBe(true);
   });
 });

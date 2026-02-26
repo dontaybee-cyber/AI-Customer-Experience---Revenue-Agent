@@ -8,12 +8,16 @@ const serverMocks = vi.hoisted(() => {
 
   const app = {
     register: vi.fn(),
-    get: vi.fn((path: string, handler: (req?: unknown, reply?: unknown) => Promise<unknown> | unknown) => {
-      routes.get.set(path, handler);
-    }),
-    post: vi.fn((path: string, handler: (req: unknown, reply: unknown) => Promise<unknown> | unknown) => {
-      routes.post.set(path, handler);
-    }),
+    get: vi.fn(
+      (path: string, handler: (req?: unknown, reply?: unknown) => Promise<unknown> | unknown) => {
+        routes.get.set(path, handler);
+      },
+    ),
+    post: vi.fn(
+      (path: string, handler: (req: unknown, reply: unknown) => Promise<unknown> | unknown) => {
+        routes.post.set(path, handler);
+      },
+    ),
     listen: vi.fn(),
   };
 
@@ -27,7 +31,10 @@ const serverMocks = vi.hoisted(() => {
     triggerActions: [],
   });
 
-  const telegramInstances: Array<{ sendMessage: ReturnType<typeof vi.fn>; opts: { botToken: string } }> = [];
+  const telegramInstances: Array<{
+    sendMessage: ReturnType<typeof vi.fn>;
+    opts: { botToken: string };
+  }> = [];
 
   class TelegramConnector {
     public sendMessage = vi.fn().mockResolvedValue(undefined);
@@ -138,11 +145,11 @@ beforeEach(() => {
 describe("server bootstrap", () => {
   it("registers routes and listens", () => {
     expect(serverMocks.fastifyFactory).toHaveBeenCalledWith(
-      expect.objectContaining({ logger: true, bodyLimit: 64 * 1024 })
+      expect.objectContaining({ logger: true, bodyLimit: 64 * 1024 }),
     );
     expect(serverMocks.app.register).toHaveBeenCalled();
     expect(serverMocks.app.listen).toHaveBeenCalledWith(
-      expect.objectContaining({ host: "0.0.0.0" })
+      expect.objectContaining({ host: "0.0.0.0" }),
     );
     expect(serverMocks.routes.get.has("/health")).toBe(true);
     expect(serverMocks.routes.post.has("/webhooks/:provider")).toBe(true);
@@ -188,7 +195,10 @@ describe("webhook handler", () => {
       triggerActions: [],
     });
 
-    await handler?.({ params: { provider: "webchat" }, body: { hello: "world" }, headers: {} }, reply);
+    await handler?.(
+      { params: { provider: "webchat" }, body: { hello: "world" }, headers: {} },
+      reply,
+    );
     expect(serverMocks.normalizeEvent).toHaveBeenCalled();
     expect(serverMocks.run).toHaveBeenCalledWith(event);
     expect(reply.payload).toEqual({
@@ -231,7 +241,7 @@ describe("webhook handler", () => {
         chatId: "chat_1",
         parseMode: "MarkdownV2",
         text: "escaped:Hello *world*",
-      })
+      }),
     );
 
     delete process.env.TELEGRAM_BOT_TOKEN;

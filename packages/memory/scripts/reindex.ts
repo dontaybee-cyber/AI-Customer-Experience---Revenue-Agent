@@ -1,5 +1,5 @@
 
-import { SupabaseContinuityStore } from '../src/supabaseStore';
+import { SupabaseContinuityStore } from "../src/supabaseStore.js";
 
 async function main() {
   console.log('Starting re-indexing process...');
@@ -11,8 +11,9 @@ async function main() {
   for (const message of messagesToReindex) {
     try {
       console.log(`Generating embedding for message: ${message.id}`);
-      // @ts-ignore - private method
-      const embedding = await store.generateEmbedding(message.contentRedacted);
+      const embedding = await store.generateEmbeddingForText(
+        message.contentRedacted
+      );
       
       await store.saveEmbedding(
         message.id,

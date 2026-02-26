@@ -3,15 +3,10 @@ import type { AuditLogger } from "../../infra/audit.js";
 import { createAuditLogger } from "../../infra/audit.js";
 import { hashIdentifier, redactPII } from "../../infra/pii.js";
 import { triggerQueue } from "../../queue.js";
-import { StubLlmClient } from "../../llm.js";
+import { OpenAiLlmClient, StubLlmClient } from "../../llm.js";
 import { getContext, SupabaseContinuityStore } from "@acx/memory";
 import type { ContinuityStore } from "@acx/memory";
-import type {
-  InternalEvent,
-  MessageRecord,
-  OrchestratorResult,
-  OpenTicket,
-} from "@acx/shared";
+import type { InternalEvent, MessageRecord, OrchestratorResult, OpenTicket } from "@acx/shared";
 import type { LlmClient, LlmMessage } from "../../llm.js";
 
 // App-level salt for audit-log identifier hashing.
@@ -25,9 +20,12 @@ export interface OrchestratorDeps {
 }
 
 function createDefaultDeps(): OrchestratorDeps {
+  const llm = process.env.OPENAI_API_KEY
+    ? new OpenAiLlmClient(process.env.OPENAI_API_KEY)
+    : new StubLlmClient();
   return {
     audit: createAuditLogger(),
-    llm: new StubLlmClient(),
+    llm,
     store: new SupabaseContinuityStore(),
   };
 }
@@ -47,10 +45,7 @@ export class Orchestrator {
     const at = new Date().toISOString();
 
     // Hash before writing to audit log — never store raw PII.
-    const externalIdHash = await hashIdentifier(
-      event.customerExternalId,
-      AUDIT_HASH_SALT
-    );
+    const externalIdHash = await hashIdentifier(event.customerExternalId, AUDIT_HASH_SALT);
 
     await this.audit.write({
       at,
@@ -86,7 +81,7 @@ export class Orchestrator {
     const contextBlock = this.formatContextForPrompt(
       context.recentMessages,
       context.semanticMemories.map((m) => m.textRedacted),
-      context.openTickets
+      context.openTickets,
     );
 
     const user: LlmMessage = {
@@ -108,7 +103,7 @@ export class Orchestrator {
         event,
         recentMessages: context.recentMessages,
       },
-      { removeOnComplete: true, removeOnFail: 100 }
+      { removeOnComplete: true, removeOnFail: 100 },
     );
 
     await this.audit.write({
@@ -134,13 +129,13 @@ export class Orchestrator {
   private formatContextForPrompt(
     recent: MessageRecord[],
     semantic: string[],
-    openTickets: OpenTicket[]
+    openTickets: OpenTicket[],
   ): string {
     const recentLines = recent
       .slice(-20)
       .map(
         (m: MessageRecord) =>
-          `${m.direction === "in" ? "USER" : "AGENT"}(${m.channel}): ${m.contentRedacted}`
+          `${m.direction === "in" ? "USER" : "AGENT"}(${m.channel}): ${m.contentRedacted}`,
       )
       .join("\n");
 
@@ -153,7 +148,7 @@ export class Orchestrator {
       .slice(0, 5)
       .map(
         (t: OpenTicket) =>
-          `- ${t.id} [${t.status}] priority=${t.priority} intent=${t.intent ?? "unknown"}`
+          `- ${t.id} [${t.status}] priority=${t.priority} intent=${t.intent ?? "unknown"}`,
       )
       .join("\n");
 

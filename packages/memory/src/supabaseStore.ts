@@ -17,11 +17,14 @@ export class SupabaseContinuityStore implements ContinuityStore {
   
     constructor() {
       const supabaseUrl = process.env.SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_ANON_KEY;
-  
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error("Supabase URL and Key must be provided in environment variables.");
-      }
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error(
+        "Supabase URL and key must be provided in environment variables.",
+      );
+    }
   
       this.client = createClient(supabaseUrl, supabaseKey);
     }
@@ -170,6 +173,10 @@ export class SupabaseContinuityStore implements ContinuityStore {
       /**
        * @deprecated Mock implementation. Replace with a real embedding model.
        */
+      public async generateEmbeddingForText(text: string): Promise<number[]> {
+        return this.generateEmbedding(text);
+      }
+
       private async generateEmbedding(query: string): Promise<number[]> {
         // Mock embedding generation. In a real implementation, this would
         // call an embedding model like OpenAI's text-embedding-ada-002.

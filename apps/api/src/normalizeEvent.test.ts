@@ -29,7 +29,7 @@ describe("normalizeEvent - twilio", () => {
 
   it("throws when From is missing", () => {
     expect(() =>
-      normalizeEvent({ provider: "twilio", payload: { SmsMessageSid: "SM123" } })
+      normalizeEvent({ provider: "twilio", payload: { SmsMessageSid: "SM123" } }),
     ).toThrow("Missing required field: From");
   });
 
@@ -98,7 +98,7 @@ describe("normalizeEvent - webchat", () => {
       normalizeEvent({
         provider: "webchat",
         payload: { text: "hello" },
-      })
+      }),
     ).toThrow();
   });
 
@@ -130,9 +130,9 @@ describe("normalizeEvent - telegram", () => {
   });
 
   it("throws when message object is missing", () => {
-    expect(() =>
-      normalizeEvent({ provider: "telegram", payload: {} })
-    ).toThrow("Telegram payload missing message");
+    expect(() => normalizeEvent({ provider: "telegram", payload: {} })).toThrow(
+      "Telegram payload missing message",
+    );
   });
 
   it("throws when from.id is missing", () => {
@@ -147,15 +147,15 @@ describe("normalizeEvent - telegram", () => {
             chat: { id: 1 },
           },
         },
-      })
+      }),
     ).toThrow();
   });
 });
 
 describe("normalizeEvent - unsupported provider", () => {
   it("throws for unknown provider", () => {
-    expect(() =>
-      normalizeEvent({ provider: "unknown" as never, payload: {} })
-    ).toThrow("Unsupported provider: unknown");
+    expect(() => normalizeEvent({ provider: "unknown" as never, payload: {} })).toThrow(
+      "Unsupported provider: unknown",
+    );
   });
 });

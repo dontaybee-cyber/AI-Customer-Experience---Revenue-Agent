@@ -52,7 +52,11 @@ export class PivotManager {
     return this.state;
   }
 
-  public async handleMessage(message: Message, resolutionScore: number, sentimentEma: number): Promise<void> {
+  public async handleMessage(
+    message: Message,
+    resolutionScore: number,
+    sentimentEma: number,
+  ): Promise<void> {
     const buyingSignalDetected = await this.deps.triggerEngine.detectBuyingSignals(message);
 
     if (this.state === AgentState.SUPPORT_ACTIVE && resolutionScore > 0.9) {
@@ -64,7 +68,11 @@ export class PivotManager {
     }
   }
 
-  private conditionEngine(resolutionScore: number, sentimentEma: number, buyingSignalDetected: boolean): boolean {
+  private conditionEngine(
+    resolutionScore: number,
+    sentimentEma: number,
+    buyingSignalDetected: boolean,
+  ): boolean {
     const isResolved = resolutionScore > 0.9;
     const isPositiveSentiment = sentimentEma > 0;
     if (!isResolved || !isPositiveSentiment) {

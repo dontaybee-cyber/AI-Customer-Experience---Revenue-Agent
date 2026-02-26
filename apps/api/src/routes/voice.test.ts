@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { FastifyInstance } from "fastify";
-import voiceRoutes from "./voice.js";
+
+let voiceRoutes: typeof import("./voice.js").default;
 
 const memoryMocks = vi.hoisted(() => {
   const getContext = vi.fn();
@@ -60,9 +61,11 @@ function createReply(): ReplyStub {
 describe("voiceRoutes", () => {
   const routes = new Map<string, (req: { body: unknown }, reply: ReplyStub) => Promise<unknown>>();
   const fastify = {
-    post: vi.fn((path: string, handler: (req: { body: unknown }, reply: ReplyStub) => Promise<unknown>) => {
-      routes.set(path, handler);
-    }),
+    post: vi.fn(
+      (path: string, handler: (req: { body: unknown }, reply: ReplyStub) => Promise<unknown>) => {
+        routes.set(path, handler);
+      },
+    ),
     log: { error: vi.fn(), info: vi.fn() },
   } as unknown as FastifyInstance;
 
@@ -70,6 +73,8 @@ describe("voiceRoutes", () => {
     routes.clear();
     memoryMocks.getContext.mockReset();
     connectorMocks.vapiInstances.length = 0;
+    vi.resetModules();
+    ({ default: voiceRoutes } = await import("./voice.js"));
     await voiceRoutes(fastify, {});
   });
 
@@ -114,10 +119,10 @@ describe("voiceRoutes", () => {
           },
         },
       },
-      reply
+      reply,
     );
     expect(reply.statusCode).toBe(200);
-    expect((fastify.log.info as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+    expect(fastify.log.info as ReturnType<typeof vi.fn>).toHaveBeenCalled();
   });
 
   it("returns 500 when vapi-end-report throws", async () => {
@@ -125,6 +130,6 @@ describe("voiceRoutes", () => {
     const reply = createReply();
     await handler?.({ body: undefined }, reply);
     expect(reply.statusCode).toBe(500);
-    expect((fastify.log.error as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+    expect(fastify.log.error as ReturnType<typeof vi.fn>).toHaveBeenCalled();
   });
 });

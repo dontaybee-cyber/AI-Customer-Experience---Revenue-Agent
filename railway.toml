@@ -1,0 +1,28 @@
+[build]
+builder = "nixpacks"
+
+[[services]]
+name = "api"
+source = "apps/api"
+
+  [services.build]
+  buildCommand = "pnpm install --frozen-lockfile && pnpm --filter acx-api build"
+
+  [services.deploy]
+  startCommand = "node dist/server.js"
+  healthcheckPath = "/health"
+  healthcheckTimeout = 30
+  restartPolicyType = "on_failure"
+  restartPolicyMaxRetries = 3
+
+[[services]]
+name = "worker"
+source = "apps/api"
+
+  [services.build]
+  buildCommand = "pnpm install --frozen-lockfile && pnpm --filter acx-api build"
+
+  [services.deploy]
+  startCommand = "node dist/worker.js"
+  restartPolicyType = "on_failure"
+  restartPolicyMaxRetries = 3

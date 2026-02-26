@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
-import { PivotManager, AgentState } from "./PivotManager.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TriggerEngine } from "./TriggerEngine.js";
-import type { PivotManagerDeps } from "./PivotManager.js";
+import type { AgentState as AgentStateType, PivotManagerDeps } from "./PivotManager.js";
+
+let PivotManager: typeof import("./PivotManager.js").PivotManager;
+let AgentState: typeof import("./PivotManager.js").AgentState;
 
 const sampleMessage = {
   id: "msg_001",
@@ -27,6 +29,20 @@ function makeDeps(overrides: Partial<PivotManagerDeps> = {}): PivotManagerDeps {
   } as unknown as PivotManagerDeps;
 }
 
+vi.mock("@acx/connectors", () => ({
+  TelegramConnector: class TelegramConnector {
+    static fromEnv() {
+      return new TelegramConnector();
+    }
+    sendMessage = vi.fn().mockResolvedValue(undefined);
+  },
+}));
+
+beforeEach(async () => {
+  vi.resetModules();
+  ({ PivotManager, AgentState } = await import("./PivotManager.js"));
+});
+
 describe("services.PivotManager", () => {
   it("initial state is SUPPORT_TRIAGE", () => {
     const pm = new PivotManager(makeDeps());
@@ -36,11 +52,11 @@ describe("services.PivotManager", () => {
   it("transitions to RESOLVED from SUPPORT_ACTIVE when resolutionScore > 0.9", async () => {
     const deps = makeDeps();
     const pm = new PivotManager(deps);
-    (pm as unknown as { state: AgentState }).state = AgentState.SUPPORT_ACTIVE;
+    (pm as unknown as { state: AgentStateType }).state = AgentState.SUPPORT_ACTIVE;
     await pm.handleMessage(sampleMessage, 0.95, -0.1);
     expect(pm.getState()).toBe(AgentState.RESOLVED);
     expect(deps.audit.write).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "state_transition" })
+      expect.objectContaining({ action: "state_transition" }),
     );
   });
 
@@ -52,10 +68,10 @@ describe("services.PivotManager", () => {
     await pm.handleMessage(sampleMessage, 0.95, 0.5);
     expect(pm.getState()).toBe(AgentState.SALES_QUALIFY);
     expect(deps.audit.write).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "pivot_to_sales" })
+      expect.objectContaining({ action: "pivot_to_sales" }),
     );
     expect(deps.audit.write).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "generate_pivot_prompt" })
+      expect.objectContaining({ action: "generate_pivot_prompt" }),
     );
   });
 
@@ -71,7 +87,7 @@ describe("services.PivotManager", () => {
       expect.objectContaining({
         chatId: "admin_chat_123",
         text: expect.not.stringContaining("+15551234567"),
-      })
+      }),
     );
     delete process.env.TELEGRAM_ADMIN_CHAT_ID;
   });
@@ -85,7 +101,7 @@ describe("services.PivotManager", () => {
     await pm.handleMessage(sampleMessage, 0.95, 0.5);
     await new Promise((r) => setTimeout(r, 20));
     expect(deps.audit.write).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "skip_admin_notification" })
+      expect.objectContaining({ action: "skip_admin_notification" }),
     );
   });
 });

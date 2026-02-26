@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
-import { Orchestrator } from "./orchestrator.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { OrchestratorDeps } from "./orchestrator.js";
 import type { InternalEvent } from "@acx/shared";
+
+let Orchestrator: typeof import("./orchestrator.js").Orchestrator;
 
 vi.mock("../../queue.js", () => ({
   triggerQueue: { add: vi.fn().mockResolvedValue(undefined) },
@@ -48,6 +49,11 @@ vi.mock("@acx/memory", () => ({
   SupabaseContinuityStore: vi.fn().mockImplementation(() => ({})),
 }));
 
+beforeEach(async () => {
+  vi.resetModules();
+  ({ Orchestrator } = await import("./orchestrator.js"));
+});
+
 describe("Orchestrator.run", () => {
   it("calls audit.write twice (event_received + response_generated)", async () => {
     const deps = makeDeps();
@@ -62,7 +68,7 @@ describe("Orchestrator.run", () => {
     await orchestrator.run(sampleEvent);
     expect(deps.audit.write).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ action: "event_received" })
+      expect.objectContaining({ action: "event_received" }),
     );
   });
 
@@ -72,7 +78,7 @@ describe("Orchestrator.run", () => {
     await orchestrator.run(sampleEvent);
     expect(deps.audit.write).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ action: "response_generated" })
+      expect.objectContaining({ action: "response_generated" }),
     );
   });
 

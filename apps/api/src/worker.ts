@@ -39,7 +39,7 @@ const worker = new Worker(
         customerId,
         event,
         recentMessages,
-      }
+      },
     );
 
     await audit.write({
@@ -97,7 +97,7 @@ const worker = new Worker(
   },
   {
     connection: QUEUE_CONNECTION,
-  }
+  },
 );
 
 worker.on("failed", async (job: Job | undefined, err: Error) => {
@@ -110,3 +110,6 @@ worker.on("failed", async (job: Job | undefined, err: Error) => {
     details: { error: err.message },
   });
 });
+
+// Start worker process
+console.log("[worker] BullMQ trigger worker started");

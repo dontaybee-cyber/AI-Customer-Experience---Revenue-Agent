@@ -18,12 +18,16 @@ describe("TriggerEngine.detectBuyingSignals", () => {
 
   it("returns true for keyword: integration", async () => {
     const engine = makeEngine();
-    expect(await engine.detectBuyingSignals({ content: "does this work with our integration" })).toBe(true);
+    expect(
+      await engine.detectBuyingSignals({ content: "does this work with our integration" }),
+    ).toBe(true);
   });
 
   it("returns true for keyword: scalability", async () => {
     const engine = makeEngine();
-    expect(await engine.detectBuyingSignals({ content: "I have questions about scalability" })).toBe(true);
+    expect(
+      await engine.detectBuyingSignals({ content: "I have questions about scalability" }),
+    ).toBe(true);
   });
 
   it("returns false for unrelated message", async () => {
@@ -46,7 +50,9 @@ describe("TriggerEngine.detectBuyingSignals", () => {
 
   it("LLM fallback returns true for: enterprise", async () => {
     const engine = makeEngine();
-    expect(await engine.detectBuyingSignals({ content: "we are an enterprise customer" })).toBe(true);
+    expect(await engine.detectBuyingSignals({ content: "we are an enterprise customer" })).toBe(
+      true,
+    );
   });
 
   it("LLM fallback returns false for non-buying message", async () => {

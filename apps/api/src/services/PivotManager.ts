@@ -1,4 +1,3 @@
-
 import type { AuditLogger } from "../infra/audit.js";
 import { createAuditLogger } from "../infra/audit.js";
 import { hashIdentifier } from "../infra/pii.js";
@@ -8,11 +7,11 @@ import { TelegramConnector } from "@acx/connectors";
 import { type AuditEvent } from "../infra/audit.js";
 
 export enum AgentState {
-  SUPPORT_TRIAGE = 'SUPPORT_TRIAGE',
-  SUPPORT_ACTIVE = 'SUPPORT_ACTIVE',
-  RESOLVED = 'RESOLVED',
-  SALES_QUALIFY = 'SALES_QUALIFY',
-  SALES_HANDOFF = 'SALES_HANDOFF',
+  SUPPORT_TRIAGE = "SUPPORT_TRIAGE",
+  SUPPORT_ACTIVE = "SUPPORT_ACTIVE",
+  RESOLVED = "RESOLVED",
+  SALES_QUALIFY = "SALES_QUALIFY",
+  SALES_HANDOFF = "SALES_HANDOFF",
 }
 
 export interface PivotManagerDeps {
@@ -43,14 +42,8 @@ export class PivotManager {
     return this.state;
   }
 
-  public async handleMessage(
-    message: Message,
-    resolutionScore: number,
-    sentimentEma: number
-  ) {
-    const buyingSignalDetected = await this.deps.triggerEngine.detectBuyingSignals(
-      message
-    );
+  public async handleMessage(message: Message, resolutionScore: number, sentimentEma: number) {
+    const buyingSignalDetected = await this.deps.triggerEngine.detectBuyingSignals(message);
 
     if (this.state === AgentState.SUPPORT_ACTIVE && resolutionScore > 0.9) {
       this.transitionTo(AgentState.RESOLVED, message);
@@ -64,7 +57,7 @@ export class PivotManager {
   private conditionEngine(
     resolutionScore: number,
     sentimentEma: number,
-    buyingSignalDetected: boolean
+    buyingSignalDetected: boolean,
   ): boolean {
     const isResolved = resolutionScore > 0.9;
     const isPositiveSentiment = sentimentEma > 0;
@@ -81,9 +74,9 @@ export class PivotManager {
     if (this.state !== newState) {
       this.deps.audit.write({
         at: new Date().toISOString(),
-        actor: 'agent',
-        action: 'state_transition',
-        resourceType: 'conversation',
+        actor: "agent",
+        action: "state_transition",
+        resourceType: "conversation",
         resourceId: message.conversationId,
         details: {
           fromState: this.state,
@@ -103,9 +96,9 @@ export class PivotManager {
   private logPivotEvent(message: Message) {
     const event: AuditEvent = {
       at: new Date().toISOString(),
-      actor: 'agent',
-      action: 'pivot_to_sales',
-      resourceType: 'conversation',
+      actor: "agent",
+      action: "pivot_to_sales",
+      resourceType: "conversation",
       resourceId: message.conversationId,
       details: {
         customerId: message.identity,
@@ -120,12 +113,12 @@ export class PivotManager {
     if (!adminChatId) {
       void this.deps.audit.write({
         at: new Date().toISOString(),
-        actor: 'system',
-        action: 'skip_admin_notification',
-        resourceType: 'conversation',
+        actor: "system",
+        action: "skip_admin_notification",
+        resourceType: "conversation",
         resourceId: message.conversationId,
         details: {
-          reason: 'TELEGRAM_ADMIN_CHAT_ID not set',
+          reason: "TELEGRAM_ADMIN_CHAT_ID not set",
         },
       });
       return;
@@ -141,9 +134,9 @@ export class PivotManager {
     const newSystemPrompt = `Glad we got that fixed! Since you mentioned team scaling, would you like to see how our enterprise plan handles that?`;
     this.deps.audit.write({
       at: new Date().toISOString(),
-      actor: 'agent',
-      action: 'generate_pivot_prompt',
-      resourceType: 'conversation',
+      actor: "agent",
+      action: "generate_pivot_prompt",
+      resourceType: "conversation",
       resourceId: message.conversationId,
     });
     return { newSystemPrompt };

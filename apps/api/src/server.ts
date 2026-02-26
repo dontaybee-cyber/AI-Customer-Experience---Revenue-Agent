@@ -32,7 +32,6 @@ const orchestrator = new Orchestrator({
 
 app.get("/health", async () => ({ ok: true }));
 
-
 /**
  * Webhook endpoints (MVP)
  * - POST /webhooks/twilio
@@ -75,7 +74,7 @@ app.post("/webhooks/:provider", async (req: FastifyRequest, reply: FastifyReply)
       await tg.sendMessage({
         chatId,
         parseMode: "MarkdownV2",
-        text: escapeMarkdownV2(result.responseText)
+        text: escapeMarkdownV2(result.responseText),
       });
     }
   }

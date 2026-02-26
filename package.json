@@ -5,7 +5,7 @@
   "description": "AI Customer Experience & Revenue Agent monorepo (omnichannel shared memory + trigger engine + connectors).",
   "packageManager": "pnpm@9.15.5",
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "pnpm --filter @acx/api dev",
@@ -20,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^25.3.0",
     "@typescript/native-preview": "7.0.0-dev.20260224.1",
+    "oxfmt": "^0.35.0",
     "oxlint": "^1.50.0",
     "typescript": "^5.9.3"
   }

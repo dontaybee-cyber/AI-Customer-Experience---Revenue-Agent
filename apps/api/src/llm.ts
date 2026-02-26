@@ -6,6 +6,8 @@
  * Replace with OpenAI/Anthropic/etc. streaming client.
  */
 
+import OpenAI from "openai";
+
 export interface LlmMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -27,6 +29,38 @@ export class StubLlmClient implements LlmClient {
     for (const chunk of response.match(/.{1,24}/g) ?? []) {
       yield { token: chunk };
       await new Promise((r) => setTimeout(r, 10));
+    }
+  }
+}
+
+// Max tokens per response — keeps costs predictable within $0-$20 budget.
+const MAX_TOKENS = 500;
+
+export class OpenAiLlmClient implements LlmClient {
+  private readonly client: OpenAI;
+  private readonly model: string;
+
+  constructor(apiKey: string, model = "gpt-4o-mini") {
+    this.client = new OpenAI({ apiKey });
+    this.model = model;
+  }
+
+  async *streamChat(input: { messages: LlmMessage[] }): AsyncIterable<StreamToken> {
+    const stream = await this.client.chat.completions.create({
+      model: this.model,
+      max_tokens: MAX_TOKENS,
+      stream: true,
+      messages: input.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+    });
+
+    for await (const chunk of stream) {
+      const token = chunk.choices[0]?.delta?.content;
+      if (token) {
+        yield { token };
+      }
     }
   }
 }

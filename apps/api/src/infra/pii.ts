@@ -19,5 +19,5 @@ export async function hashIdentifier(value: string, salt: string): Promise<strin
   const data = encoder.encode(value + salt);
   const hashBuffer = await webcrypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }

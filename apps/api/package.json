@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check": "pnpm run lint && pnpm run format:check",
     "lint": "oxlint src",
-    "format:check": "echo \"format check skipped - oxfmt not available\"",
+    "format:check": "oxfmt --check src",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:live": "LIVE=1 vitest run"
@@ -21,7 +21,8 @@
     "@acx/shared": "workspace:*",
     "@acx/trigger-engine": "workspace:*",
     "bullmq": "^5.70.1",
-    "fastify": "^5.2.1"
+    "fastify": "^5.2.1",
+    "openai": "^6.25.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",

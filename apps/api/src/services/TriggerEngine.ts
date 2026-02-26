@@ -44,6 +44,6 @@ export class TriggerEngine {
     const lowerCaseContent = message.content.toLowerCase();
     const mockKeywords = ["upgrade", "team", "enterprise", "feature compatibility"];
 
-    return mockKeywords.some(keyword => lowerCaseContent.includes(keyword));
+    return mockKeywords.some((keyword) => lowerCaseContent.includes(keyword));
   }
 }
